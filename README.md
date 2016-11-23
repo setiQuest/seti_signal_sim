@@ -25,7 +25,7 @@ Also, in this example, I've added a square wave amplitude modulation with a peri
 samples (equivalent to 10 raster lines) with a duty cycle of 0.5.  One can also add a sine wave
 amplitude modulation (in the case of a `sine` modulation, the duty cycle value is ignored.)
 
-## Convert to PGM file
+## Convert to Spectrogram and output to PGM file
 
 The output file contains a header, all contained within the first line. It is in JSON format. 
 From the command-line, one can skip the header and stream the remainder of the data with 
@@ -36,7 +36,14 @@ len=6144
 tail -n +2 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 129 -p > wf1.pgm
 ```
 
-See this repo for the SETI command line tools: https://github.com/setiQuest/Algorithms
+SETI command line tools are here: https://github.com/setiQuest/Algorithms
+
+
+## Convert to Spectrogram in Python
+
+TODO
+
+
 
 ## View PGM file
 
