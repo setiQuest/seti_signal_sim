@@ -10,12 +10,38 @@ javac apps/simulate/DataSimulator
 ## Simulate
 
 ```
-source setup.sh #if not done in shell already
-java apps.simulate.DataSimulator 13 100 0.3 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+source setup.sh #if not done already
+java apps.simulate.DataSimulator <parameters>
 ```
 
 If you just call `java apps.simulate.DataSimulator`, the output should describe all of the
 command-line input parameters.
+
+```
+  11 arguments expected
+
+  sigmaNoise deltaPhi SNR  drift sigmaSquiggle outputLength ampModType ampModPeriod ampModDuty signalClass filename
+
+  where
+
+    sigmaNoise   (double 0 - 127) noise mean power, 13 is good choice
+    deltaPhi  (double -180 - 180) average phase angle (degrees) between samples
+    SNR (double) Signal amplitude in terms of sigma_noise
+    drift (double) Average drift rate of signal
+    sigmaSquiggle (double) amplitude of squiggle noise
+    outputLength  (int > 2) number of complex-valued samples to write to output
+    ampModType  (string = 'none','square','sine') specifies how the amplitude is modulated
+    ampModPeriod  (int > 2) periodicity of amplitude modulation, in same units of outputLength
+    ampModDuty  (double betweeen 0 and 1) duty cycle of square wave amplitude modulation.
+    signalClass (string) a name to classify the signal.
+    filename  (string) output filename for data
+```
+
+### Example
+
+```
+java apps.simulate.DataSimulator 13 100 0.3 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+```
 
 To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
 over-sampled frequencies removed (aka, a waterfall plot), the output length of data is a product of these two numbers
