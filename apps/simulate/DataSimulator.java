@@ -23,6 +23,8 @@ public class DataSimulator
 	private static int simulationVersion = 2;
 	private static String simulationVersionDate = "22 Nov 2016";
 
+	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
   public static void main (String[] args) throws Exception
 	{
 
@@ -182,7 +184,8 @@ public class DataSimulator
 			
 			double Xval = dNoiseX + signalX * signalAmpFactor;
 			double Yval = dNoiseY + signalY * signalAmpFactor	;
-
+			//double Xvald = Xval;
+			//double Yvald = Yval;
 
 			// if the value hits the rail, then truncate it
 			if (Math.abs(Xval) > 127) Xval = Math.signum(Xval) * 127;
@@ -194,6 +197,14 @@ public class DataSimulator
 		
 			// write sample to OutputStream
 			OS.write(sample);
+
+			// if (i < 10) {
+			// 	if (i == 0) { 
+			// 		System.out.println("Printing out the first 10 samples");
+			// 	}
+			// 	System.out.println(Xvald + " , " + Yvald + " ; " +  Xval + " , " + Yval  + " ; " +  X + " , " + Y + "; 0x:" + bytesToHex(sample));
+			// 	//System.out.println(bytesToHex(sample));
+			// }
 		}
     }
 
@@ -217,5 +228,16 @@ public class DataSimulator
 
 		System.exit(0);
 	}
+
+// public static String bytesToHex(byte[] bytes) {
+ //    char[] hexChars = new char[bytes.length * 2];
+ //    for ( int j = 0; j < bytes.length; j++ ) {
+ //        int v = bytes[j] & 0xFF;
+ //        hexChars[j * 2] = hexArray[v >>> 4];
+ //        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+ //    }
+ //    return new String(hexChars);
+// }
+
 }
 
