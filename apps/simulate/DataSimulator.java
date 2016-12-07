@@ -16,12 +16,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class DataSimulator 
 {
 
-	private static int mExpectedArgs = 11;
-	private static double mDriftDevisor = 1024;
+	private static int mExpectedArgs = 12;
+	private static double mDriftDivisor = 1024;
 
 
-	private static int simulationVersion = 2;
-	private static String simulationVersionDate = "22 Nov 2016";
+	private static int simulationVersion = 3;
+	private static String simulationVersionDate = "7 Dec 2016";
 
 	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
@@ -36,6 +36,7 @@ public class DataSimulator
 		double deltaPhiRad = Double.parseDouble(args[nextarg++]) / 180.0 * Math.PI;
 		double SNR = Double.parseDouble(args[nextarg++]);
 		double drift = Double.parseDouble(args[nextarg++]);
+		double driftRateDerivate = Double.parseDouble(args[nextarg++]);
 		double sigmaSquiggle = Double.parseDouble(args[nextarg++]);
 		int outputLength = Integer.parseInt(args[nextarg++]);
 		String ampModType = args[nextarg++];
@@ -52,6 +53,7 @@ public class DataSimulator
 			+ "deltaPhiRad = " + deltaPhiRad + "\n"
 			+ "SNR = " + SNR + "\n"
 			+ "drift = " + drift + "\n"
+			+ "driftRateDerivate = " + driftRateDerivate + "\n"
 			+ "sigmaSquiggle = " + sigmaSquiggle + "\n"
 			+ "outputLength = " + outputLength + "\n"
 			+ "ampModType = " + ampModType + "\n"
@@ -68,14 +70,14 @@ public class DataSimulator
 		
 		// create & write data
 		DataSimulator object = new DataSimulator(
-			sigmaN, deltaPhiRad, SNR, drift, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, FOS, signalClass, seed);
+			sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, FOS, signalClass, seed);
  
 		// close output file
 		FOS.close();
 	}
 
 	public DataSimulator(int sigN, double dPhi, double SNR, 
-		double drift, double jitter, int len,
+		double drift, double driftRateDerivate, double jitter, int len,
 		String ampModType, double ampModPeriod, double ampModDuty, OutputStream OS, String signalClass, long seed) throws IOException
 	{
 		Random rand = new Random(seed);
@@ -83,9 +85,9 @@ public class DataSimulator
 		// convert SNR from number of STD to counts
 		SNR = SNR * sigN;
 
-		// put drift rate and signal jitter into (approximate) Hz/s assuming mDriftDevisor samples in FFT
+		// put drift rate and signal jitter into (approximate) Hz/s assuming mDriftDivisor samples in FFT
 		// using small angle approximation for sinDrift
-		double sinDrift = drift / mDriftDevisor;
+		double sinDrift = drift / mDriftDivisor;
 		if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
 		double cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
 
@@ -112,6 +114,7 @@ public class DataSimulator
 		setup.put("delta_phi_rad", dPhi);
 		setup.put("signal_to_noise_ratio", SNR);
 		setup.put("drift",drift);
+		setup.put("drift_rate_derivative",driftRateDerivate);
 		setup.put("jitter",jitter);
 		setup.put("len",len);
 		setup.put("amp_modulation_type", ampModType);
@@ -122,9 +125,9 @@ public class DataSimulator
 		setup.put("amp_phase_sine", ampPhaseSine);
 		setup.put("signal_classification", signalClass);
 		setup.put("current_time", seed);
-		setup.put("drift_divisor", mDriftDevisor);
-		setup.put("sine_drift", sinDrift);
-		setup.put("cosine_drift", cosDrift);
+		setup.put("drift_divisor", mDriftDivisor);
+		setup.put("initial_sine_drift", sinDrift);
+		setup.put("initial_cosine_drift", cosDrift);
 		setup.put("simulator_software_version", simulationVersion);
 		setup.put("simulator_software_version_date", simulationVersionDate);
 		setup.put("uuid", UUID.randomUUID().toString());
@@ -138,6 +141,12 @@ public class DataSimulator
 		// loop over samples
 		for (int i = 0; i < len; ++i)
 		{
+
+			//allow for drift rate to change
+			sinDrift = sinDrift + (driftRateDerivate/1000000.0) / mDriftDivisor;
+			if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
+			cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
+
 			// propagate signal frequency to next value using drift
 			double temp = cosPhi * cosDrift - sinPhi * sinDrift;
 			sinPhi      = cosPhi * sinDrift + sinPhi * cosDrift;
@@ -218,6 +227,7 @@ public class DataSimulator
 			+ "\t  deltaPhi\t(double -180 - 180) average phase angle (degrees) between samples\n"
 			+ "\t  SNR\t(double) Signal amplitude in terms of sigma_noise\n"
 			+ "\t  drift\t(double) Average drift rate of signal\n"
+			+ "\t  driftRateDerivate\t(double) Change of drift rate per 1m samples\n"
 			+ "\t  sigmaSquiggle\t(double) amplitude of squiggle noise\n"
 			+ "\t  outputLength\t(int > 2) number of complex-valued samples to write to output\n"
 			+ "\t  ampModType\t(string = 'none','square','sine') specifies how the amplitude is modulated\n"

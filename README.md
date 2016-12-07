@@ -4,7 +4,7 @@
 
 ```
 source setup.sh   #adds dependencies to CLASSPATH
-javac apps/simulate/DataSimulator
+javac apps/simulate/DataSimulator.java
 ```
 
 ## Simulate
