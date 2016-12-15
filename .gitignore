@@ -1,3 +1,7 @@
 *.pgm
 *.data
 *.class
+test.json
+*.zip
+*.gzip
+*.gz
