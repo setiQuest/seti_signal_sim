@@ -53,13 +53,16 @@ amplitude modulation (in the case of a `sine` modulation, the duty cycle value i
 
 ## Convert to Spectrogram and output to PGM file
 
-The output file contains a header, all contained within the first line. It is in JSON format. 
+The output file contains two headers, all contained within the first two lines. They are in JSON format. The
+first header is called the "private" header, and the second header is the "public" header. When these data
+are published, the invormation from the private header will be saved to a database and removed from the simulation
+file and the public header will remain. 
 From the command-line, one can skip the header and stream the remainder of the data with 
 the `tail` command. Then pipe the data into the standard SETI command-line tools.
 
 ```
 len=6144  
-tail -n +2 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 129 -p > wf1.pgm
+tail -n +3 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 129 -p > wf1.pgm
 ```
 
 SETI command line tools are here: https://github.com/setiQuest/Algorithms
@@ -67,7 +70,7 @@ SETI command line tools are here: https://github.com/setiQuest/Algorithms
 
 ## Convert to Spectrogram in Python
 
-TODO
+See `python/read_sim.py`. 
 
 
 
@@ -85,7 +88,7 @@ In python, I do
 from __future__ import print_function
 from PIL import Image, ImageFilter
  
-im = Image.open(‘wf1.pgm’)
+im = Image.open('wf1.pgm')
 im.show()
 ```
 
