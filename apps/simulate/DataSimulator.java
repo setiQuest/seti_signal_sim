@@ -20,8 +20,8 @@ public class DataSimulator
 	private static double mDriftDivisor = 1024;
 
 
-	private static int simulationVersion = 3;
-	private static String simulationVersionDate = "7 Dec 2016";
+	private static int simulationVersion = 4;
+	private static String simulationVersionDate = "15 Dec 2016";
 
 	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
