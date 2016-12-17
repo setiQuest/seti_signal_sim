@@ -20,8 +20,8 @@ public class DataSimulator
 	private static double mDriftDivisor = 1024;
 
 
-	private static int simulationVersion = 4;
-	private static String simulationVersionDate = "15 Dec 2016";
+	private static int simulationVersion = 5;
+	private static String simulationVersionDate = "16 Dec 2016";
 
 	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
@@ -58,7 +58,7 @@ public class DataSimulator
 			+ "outputLength = " + outputLength + "\n"
 			+ "ampModType = " + ampModType + "\n"
 			+ "ampModPeriod (only valid if type != none) = " + ampModPeriod + "\n"
-			+ "ampModDuty (only if type = 'square') = " + ampModDuty + "\n"
+			+ "ampModDuty (only if type = 'square' or 'brightpixel') = " + ampModDuty + "\n"
 			+ "signalClass = " + signalClass + "\n"
 			+ "filename = " + filename + "\n");
 
@@ -101,6 +101,28 @@ public class DataSimulator
 		double signalY = rand.nextGaussian() * sigN;
 		
 		double ampPhase = rand.nextFloat();
+		//we do this to ensure that the bright pixel doesn't happen 
+		//*right* at the beginning or end of the simulation.
+		//This is
+		//especially important for it not to start at the end of
+		//this simulation, because it would actually wrap around
+		//and the signal would be split between the very beginning and
+		//very end.
+		//typical "brightpixel" signals will last between
+		//0.1 second up to 2 seconds.** This is now specifically tailored
+		//for typical ACA-sized simulations (128 raster lines * 6144 samples/raster line). 
+		//We prevent the ON phase of 
+		//amplitude modulation from "starting" within the last
+		//2% of the simulated waveform 
+		//
+		//** note: "second" here means the time length of a raster line
+		//in ACA files that we're simulating. This does not exactly match
+		//the ACA files, but it makes it easier to visualize and discuss. 
+		double maxBPPhase = 0.98;
+		if (ampModType.equals("brightpixel")){
+				ampPhase = ampPhase*maxBPPhase;
+		}
+
 		double ampPhaseSquare = ampPhase*ampModPeriod;
 		double ampPhaseSine = (ampPhase - 0.5)*Math.PI;
 
@@ -178,7 +200,7 @@ public class DataSimulator
 			// make sure to have a large enough periodicity so that sidebands are not observed
 			// 
 			signalAmpFactor = SNR;
-			if (ampModType.equals("square")){					
+			if (ampModType.equals("square") || ampModType.equals("brightpixel")){					
 					if( (i - ampPhaseSquare) % ampModPeriod > ampModPeriod*ampModDuty ) {
 						signalAmpFactor = 0;
 					}
@@ -230,7 +252,7 @@ public class DataSimulator
 			+ "\t  driftRateDerivate\t(double) Change of drift rate per 1m samples\n"
 			+ "\t  sigmaSquiggle\t(double) amplitude of squiggle noise\n"
 			+ "\t  outputLength\t(int > 2) number of complex-valued samples to write to output\n"
-			+ "\t  ampModType\t(string = 'none','square','sine') specifies how the amplitude is modulated\n"
+			+ "\t  ampModType\t(string = 'none','square','brightpixel', or 'sine') specifies how the amplitude is modulated\n"
 			+ "\t  ampModPeriod\t(int > 2) periodicity of amplitude modulation, in same units of outputLength\n"
 			+ "\t  ampModDuty\t(double betweeen 0 and 1) duty cycle of square wave amplitude modulation.\n"
 			+ "\t  signalClass\t(string) a name to classify the signal.\n"
