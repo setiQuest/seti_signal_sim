@@ -18,9 +18,9 @@ If you just call `java apps.simulate.DataSimulator`, the output should describe 
 command-line input parameters.
 
 ```
-  11 arguments expected
+  12 arguments expected
 
-  sigmaNoise deltaPhi SNR  drift sigmaSquiggle outputLength ampModType ampModPeriod ampModDuty signalClass filename
+  sigmaNoise deltaPhi SNR  drift driftRateDerivative sigmaSquiggle outputLength ampModType ampModPeriod ampModDuty signalClass filename
 
   where
 
@@ -28,6 +28,7 @@ command-line input parameters.
     deltaPhi  (double -180 - 180) average phase angle (degrees) between samples
     SNR (double) Signal amplitude in terms of sigma_noise
     drift (double) Average drift rate of signal
+    driftRateDerivative (double) Change of drift rate per 1m samples
     sigmaSquiggle (double) amplitude of squiggle noise
     outputLength  (int > 2) number of complex-valued samples to write to output
     ampModType  (string = 'none','square','sine') specifies how the amplitude is modulated
@@ -40,7 +41,7 @@ command-line input parameters.
 ### Example
 
 ```
-java apps.simulate.DataSimulator 13 100 0.3 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+java apps.simulate.DataSimulator 13 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
 ```
 
 To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
