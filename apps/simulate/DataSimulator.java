@@ -11,6 +11,10 @@ import java.util.Map;
 
 import java.util.UUID;
 
+import apps.simulate.NoiseGenerator;
+import apps.simulate.GaussianNoise;
+//import apps.simulate.FileNoise;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DataSimulator 
@@ -20,8 +24,8 @@ public class DataSimulator
 	private static double mDriftDivisor = 1024;
 
 
-	private static int simulationVersion = 5;
-	private static String simulationVersionDate = "16 Dec 2016";
+	private static int simulationVersion = 6;
+	private static String simulationVersionDate = "23 Dec 2016";
 
 	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
@@ -67,23 +71,26 @@ public class DataSimulator
 
 		// create output file
 		FileOutputStream FOS = new FileOutputStream(new File(filename));
-		
+		NoiseGenerator noiseGen = new GaussianNoise(System.currentTimeMillis());
+		noiseGen.setAmp(sigmaN);
+
 		// create & write data
 		DataSimulator object = new DataSimulator(
-			sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, FOS, signalClass, seed);
+			noiseGen, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, FOS, signalClass, seed);
  
 		// close output file
 		FOS.close();
+
+		//close noise generator
+		noiseGen.close();
 	}
 
-	public DataSimulator(int sigN, double dPhi, double SNR, 
+	public DataSimulator(NoiseGenerator noiseGen, double dPhi, double SNR, 
 		double drift, double driftRateDerivate, double jitter, int len,
-		String ampModType, double ampModPeriod, double ampModDuty, OutputStream OS, String signalClass, long seed) throws IOException
+		String ampModType, double ampModPeriod, double ampModDuty, OutputStream OS, String signalClass, long seed) throws Exception
 	{
 		Random rand = new Random(seed);
-		
-		// convert SNR from number of STD to counts
-		SNR = SNR * sigN;
+
 
 		// put drift rate and signal jitter into (approximate) Hz/s assuming mDriftDivisor samples in FFT
 		// using small angle approximation for sinDrift
@@ -97,8 +104,8 @@ public class DataSimulator
 		double sinPhi = Math.sin(dPhi);
 
 		// keeps track of signal and sample values from most recent data point
-		double signalX = rand.nextGaussian() * sigN;
-		double signalY = rand.nextGaussian() * sigN;
+		double signalX = noiseGen.next();
+		double signalY = noiseGen.next();
 		
 		double ampPhase = rand.nextFloat();
 		//we do this to ensure that the bright pixel doesn't happen 
@@ -126,13 +133,13 @@ public class DataSimulator
 		double ampPhaseSquare = ampPhase*ampModPeriod;
 		double ampPhaseSine = (ampPhase - 0.5)*Math.PI;
 
-		double signalAmpFactor = SNR;
+		double signalAmpFactor = SNR * noiseGen.getAmp();
 
 		//Before we simulate, let's write out a line, in JSON, to 
 		//capture the conditions
 
 		Map<String, Object> privateHeader = new HashMap<String, Object>();
-		privateHeader.put("sigma_noise", sigN);
+		privateHeader.put("sigma_noise", noiseGen.getAmp());
 		privateHeader.put("delta_phi_rad", dPhi);
 		privateHeader.put("signal_to_noise_ratio", SNR);
 		privateHeader.put("drift",drift);
@@ -209,7 +216,7 @@ public class DataSimulator
 			// this creates sidebands in the spectrogram and need to
 			// make sure to have a large enough periodicity so that sidebands are not observed
 			// 
-			signalAmpFactor = SNR;
+			signalAmpFactor = SNR * noiseGen.getAmp();
 			if (ampModType.equals("square") || ampModType.equals("brightpixel")){					
 					if( (i - ampPhaseSquare) % ampModPeriod > ampModPeriod*ampModDuty ) {
 						signalAmpFactor = 0;
@@ -220,8 +227,8 @@ public class DataSimulator
 			}
 
 			// generate noise values
-			double dNoiseX = rand.nextGaussian() * sigN;
-			double dNoiseY = rand.nextGaussian() * sigN;
+			double dNoiseX = noiseGen.next();
+			double dNoiseY = noiseGen.next();
 			
 			double Xval = dNoiseX + signalX * signalAmpFactor;
 			double Yval = dNoiseY + signalY * signalAmpFactor	;
@@ -247,7 +254,8 @@ public class DataSimulator
 			// 	//System.out.println(bytesToHex(sample));
 			// }
 		}
-    }
+
+  }
 
 	public static void PrintHelp()
 	{
