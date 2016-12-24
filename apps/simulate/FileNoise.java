@@ -6,17 +6,20 @@ public class FileNoise extends NoiseGenerator
   private FileInputStream data = null;
 
   public FileNoise(String dataFileName) throws FileNotFoundException 
-  {
+  { 
+    this.setName(dataFileName);
     data = new FileInputStream(new File(dataFileName));
   }
 
   @Override
   public double next() throws Exception
   {
-    double val = data.read();
-    if (val == -1) {
+    int intval = data.read();
+    if (intval == -1) {
       throw new EOFException("Noise File EOF.");
     }
+    byte val = (byte)intval;
+    double retVal = val*this.getAmp();
     return val * this.getAmp();
   }
 
