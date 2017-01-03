@@ -1,24 +1,23 @@
 package apps.simulate;
-import java.io.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class FileNoise extends NoiseGenerator
 {
-  private FileInputStream data = null;
+  private byte[] vals = null;
+  private int index = 0;
 
-  public FileNoise(String dataFileName) throws FileNotFoundException 
+  public FileNoise(String dataFileName) throws IOException 
   { 
     this.setName(dataFileName);
-    data = new FileInputStream(new File(dataFileName));
+    vals = Files.readAllBytes((Paths.get(dataFileName)));
   }
 
   @Override
-  public double next() throws Exception
+  public double next() throws ArrayIndexOutOfBoundsException
   {
-    int intval = data.read();
-    if (intval == -1) {
-      throw new EOFException("Noise File EOF.");
-    }
-    byte val = (byte)intval;
+    byte val = vals[index++];
     double retVal = val*this.getAmp();
     return val * this.getAmp();
   }
@@ -26,8 +25,6 @@ public class FileNoise extends NoiseGenerator
   @Override
   public void close() throws IOException 
   {
-    if (data != null) {
-      data.close();
-    }
+    return;
   }
 }
