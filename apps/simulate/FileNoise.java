@@ -17,9 +17,7 @@ public class FileNoise extends NoiseGenerator
   @Override
   public double next() throws ArrayIndexOutOfBoundsException
   {
-    byte val = vals[index++];
-    double retVal = val*this.getAmp();
-    return val * this.getAmp();
+    return vals[index++] * this.getAmp();
   }
 
   @Override
