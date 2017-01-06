@@ -7,6 +7,13 @@ source setup.sh   #adds dependencies to CLASSPATH
 javac apps/simulate/*.java
 ```
 
+### Build Jar
+
+```
+jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
+```
+
+
 ## Simulate
 
 ```
@@ -42,6 +49,12 @@ command-line input parameters.
 
 ```
 java apps.simulate.DataSimulator 13 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+```
+
+or 
+
+```
+java -jar setisimulator.jar <parameters>
 ```
 
 To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
