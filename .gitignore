@@ -6,3 +6,4 @@ test.json
 *.gzip
 *.gz
 *.jar
+target/
