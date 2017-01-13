@@ -4,7 +4,7 @@ name := "signalsimulation"
 // orgnization name (e.g., the package name of the project)
 organization := "org.seti"
 
-version := "1.0-SNAPSHOT"
+version := "8.0"
 
 // project description
 description := "SETI Signal Simulator"
