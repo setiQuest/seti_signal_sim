@@ -17,12 +17,13 @@ sbt assembly
 
 ### OLD way, no SBT
 
-Note, without using SBT, these instructions will not create an uber jar and it's unclear 
-if this will run on a spark cluster (the dependecies must be found on all worker nodes). 
+Note, without using SBT, these instructions will not create an uber jar and it's unlikely 
+this will run on a spark cluster (the dependecies must be found on all worker nodes). 
+
 However, for local development this should work. 
 
 Also, the old way requires that all dependency libraries to be downloaded and installed in the "dependcies"
-folder. As of this writing, we are only dependent upon the Jackson tools for generating JSON. 
+folder. As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
 
 
 ##### Compile
@@ -44,9 +45,9 @@ jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
 ### Using SBT 
 
 If you've used `sbt` to package the code, the resulting jar file is 
-`target/signalsimulation-assembly-1.0-SNAPSHOT.jar`
+`target/signalsimulation-assembly-8.0.jar`
 
-This jar file is exeucted like any other jar file
+This main class for this jar file, however, is now in [spark/SETISim.scala](spark/SETISim.scala)
 
 ```
 java -jar <jar file> <parameters>
@@ -54,7 +55,7 @@ java -jar <jar file> <parameters>
 
 
 ```
-java -jar target/signalsimulation-assembly-1.0-SNAPSHOT.jar 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+java -jar target/signalsimulation-assembly-8.0.jar 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
 ```
 
 
@@ -65,7 +66,10 @@ main class directly.
 
 ```
 source setup.sh #if not done already. Only need to to this once.
-java apps.simulate.DataSimulator <parameters>
+java apps.simulate.DataSimulator <all individual parameters>
+
+//example
+java apps.simulate.DataSimulator 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
 ```
 
 

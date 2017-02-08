@@ -20,14 +20,47 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class DataSimulator 
 {
 
-	private static int mExpectedArgs = 13;
-	private static double mDriftDivisor = 1024;
+	public static int mExpectedArgs = 13;
+	public double mDriftDivisor = 1024;
 
 
-	private static int simulationVersion = 8;
-	private static String simulationVersionDate = "12 Jan 2016";
+	public int simulationVersion = 8;
+	public String simulationVersionDate = "12 Jan 2016";
+	
+	public Random rand = null;
+	public NoiseGenerator noiseGen = null;
+	public double sigN = 0;
+	public double dPhi = 0;
+	public double SNR = 0; 
+	public double drift = 0;
+	public double driftRateDerivate = 0;
+	public double jitter = 0;
+	public int len = 0;
+	public	String ampModType = "none";
+	public double ampModPeriod = 0;
+	public double ampModDuty = 0;
+	public OutputStream OS = null;
+	public String signalClass = "";
+	public long seed = 0;
+	public Map<String, Object> privateHeader = null;
+	public Map<String, Object> publicHeader  = null;
 
-	//final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+	public double sinDrift = 0;
+	public double cosDrift = 0;
+	public String uuid = "";
+
+	public double cosPhi = 0;
+	public double sinPhi = 0;
+	public double signalX = 0;
+	public double signalY = 0;
+	public double ampPhase = 0;
+	public double maxBPPhase = 0.98;
+	public double ampPhaseSquare = 0;
+	public double ampPhaseSine = 0;
+	public double signalAmpFactor = 0;
+	
+	public int numBeyondDynamicRangeX = 0;
+	public int numBeyondDynamicRangeY = 0;
 
   public static void main (String[] args) throws Exception
 	{
@@ -36,7 +69,7 @@ public class DataSimulator
 		if (args.length != mExpectedArgs) PrintHelp();
 
 		int nextarg = 0;
-		int sigmaN = Integer.parseInt(args[nextarg++]);
+		double sigmaN = Double.parseDouble(args[nextarg++]);
 		String noiseFile = args[nextarg++];
 		double deltaPhiRad = Double.parseDouble(args[nextarg++]) / 180.0 * Math.PI;
 		double SNR = Double.parseDouble(args[nextarg++]);
@@ -51,6 +84,10 @@ public class DataSimulator
 
 		String filename = args[nextarg++];
 
+		String auuid = UUID.randomUUID().toString();
+		if (filename.equals("")) {
+			filename = auuid + ".dat";
+		}
 		// test argument values -- tbd
 
 		System.out.println("args:\n" 
@@ -76,7 +113,7 @@ public class DataSimulator
 		NoiseGenerator noiseGen = null;
 
 		if (noiseFile.equals("")){
-			noiseGen = new GaussianNoise(System.currentTimeMillis());
+			noiseGen = new GaussianNoise(seed);
 			noiseGen.setAmp(sigmaN);
 		}
 		else {
@@ -85,10 +122,26 @@ public class DataSimulator
 		}
 		
 
-		// create & write data
-		DataSimulator object = new DataSimulator(
-			noiseGen, sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, FOS, signalClass, seed);
+		// create simulator
+		DataSimulator mySimulator = new DataSimulator(
+			noiseGen, sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, signalClass, seed, auuid);
  
+ 		//we insert the private and public headers into the output data file. 
+		ObjectMapper mapper = new ObjectMapper();
+
+		String json = mapper.writeValueAsString(mySimulator.privateHeader);
+		System.out.println(json);
+		FOS.write(mapper.writeValueAsBytes(mySimulator.privateHeader));
+		FOS.write('\n');
+
+		json = mapper.writeValueAsString(mySimulator.publicHeader);
+		System.out.println(json);
+		FOS.write(mapper.writeValueAsBytes(mySimulator.publicHeader));
+		FOS.write('\n');
+
+		//now do the simulation, inserting the data into the FOS
+ 		mySimulator.run(FOS);
+
 		// close output file
 		FOS.close();
 
@@ -96,29 +149,54 @@ public class DataSimulator
 		noiseGen.close();
 	}
 
-	public DataSimulator(NoiseGenerator noiseGen, int sigN, double dPhi, double SNR, 
-		double drift, double driftRateDerivate, double jitter, int len,
-		String ampModType, double ampModPeriod, double ampModDuty, OutputStream OS, String signalClass, long seed) throws Exception
+	public DataSimulator(NoiseGenerator anoiseGen, double asigN, double adPhi, double aSNR, 
+		double adrift, double adriftRateDerivate, double ajitter, int alen,
+		String aampModType, double aampModPeriod, double aampModDuty, String asignalClass, long aseed, String auuid) throws Exception
 	{
-		Random rand = new Random(seed);
+		noiseGen = anoiseGen;
+		sigN = asigN;
+		dPhi = adPhi;
+		SNR = aSNR; 
+		drift = adrift;
+		driftRateDerivate = adriftRateDerivate;
+		jitter = ajitter;
+		len = alen;
+		ampModType = aampModType;
+		ampModPeriod = aampModPeriod;
+		ampModDuty = aampModDuty;
+		signalClass = asignalClass;
+		seed = aseed;	
+		uuid = auuid;
+		rand = new Random(seed);
 
+		reset();
+	}
+
+  public void reset() throws Exception
+  {
+  	//resets all the initial settings so that you can run another simulation
+  	//the random number generator is NOT reset, so that subsequent simulations
+  	//will not produce the exact same output.
+  	
+	
+		//	DO ALL THE INITIALIZATION HERE SO THAT WE CAN EXTRACT THE HEADERS
 
 		// put drift rate and signal jitter into (approximate) Hz/s assuming mDriftDivisor samples in FFT
 		// using small angle approximation for sinDrift
-		double sinDrift = drift / mDriftDivisor;
+		sinDrift = drift / mDriftDivisor;
 		if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
-		double cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
+		cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
 
 		// dPhi is average phase angle (radians) between complex-valued samples
 		// pi radians -> Nyquist frequency
-		double cosPhi = Math.cos(dPhi);
-		double sinPhi = Math.sin(dPhi);
+		cosPhi = Math.cos(dPhi);
+		sinPhi = Math.sin(dPhi);
 
 		// keeps track of signal and sample values from most recent data point
-		double signalX = rand.nextGaussian();
-		double signalY = rand.nextGaussian();
+		signalX = rand.nextGaussian();
+		signalY = rand.nextGaussian();
 		
-		double ampPhase = rand.nextFloat();
+		ampPhase = rand.nextFloat();
 		//we do this to ensure that the bright pixel doesn't happen 
 		//*right* at the beginning or end of the simulation.
 		//This is
@@ -136,20 +214,24 @@ public class DataSimulator
 		//** note: "second" here means the time length of a raster line
 		//in ACA files that we're simulating. This does not exactly match
 		//the ACA files, but it makes it easier to visualize and discuss. 
-		double maxBPPhase = 0.98;
+		maxBPPhase = 0.98;
 		if (ampModType.equals("brightpixel")){
 				ampPhase = ampPhase*maxBPPhase;
 		}
 
-		double ampPhaseSquare = ampPhase*ampModPeriod;
-		double ampPhaseSine = (ampPhase - 0.5)*Math.PI;
+		ampPhaseSquare = ampPhase*ampModPeriod;
+		ampPhaseSine = (ampPhase - 0.5)*Math.PI;
 
-		double signalAmpFactor = SNR * sigN;
+		if (sigN != 0) {
+			signalAmpFactor = SNR * sigN;
+		}
+		else {
+			signalAmpFactor = SNR;
+		}
 
-		//Before we simulate, let's write out a line, in JSON, to 
-		//capture the conditions
+		//now use the initial conditions to build the privateHeader
 
-		Map<String, Object> privateHeader = new HashMap<String, Object>();
+		privateHeader = new HashMap<String, Object>();
 		privateHeader.put("sigma_noise", sigN);
 		privateHeader.put("noise_name", noiseGen.getName());
 		privateHeader.put("delta_phi_rad", dPhi);
@@ -165,29 +247,25 @@ public class DataSimulator
 		privateHeader.put("amp_phase_square", ampPhaseSquare);
 		privateHeader.put("amp_phase_sine", ampPhaseSine);
 		privateHeader.put("signal_classification", signalClass);
-		privateHeader.put("current_time", seed);
+		privateHeader.put("seed", seed);
 		privateHeader.put("drift_divisor", mDriftDivisor);
 		privateHeader.put("initial_sine_drift", sinDrift);
 		privateHeader.put("initial_cosine_drift", cosDrift);
 		privateHeader.put("simulator_software_version", simulationVersion);
 		privateHeader.put("simulator_software_version_date", simulationVersionDate);
-		privateHeader.put("uuid", UUID.randomUUID().toString());
-		ObjectMapper mapper = new ObjectMapper();
+		privateHeader.put("uuid", uuid);
+		
 
-		String json = mapper.writeValueAsString(privateHeader);
-		System.out.println(json);
-		OS.write(mapper.writeValueAsBytes(privateHeader));
-		OS.write('\n');
-
-
-		Map<String, Object> publicHeader = new HashMap<String, Object>();
+		publicHeader = new HashMap<String, Object>();
 		publicHeader.put("signal_classification", signalClass);
-		publicHeader.put("uuid", privateHeader.get("uuid"));
+		publicHeader.put("uuid", uuid);
 
-		json = mapper.writeValueAsString(publicHeader);
-		System.out.println(json);
-		OS.write(mapper.writeValueAsBytes(publicHeader));
-		OS.write('\n');
+
+	}
+
+	public void run(OutputStream anOS) throws Exception
+	{
+		
 
 		// loop over samples
 		for (int i = 0; i < len; ++i)
@@ -228,7 +306,13 @@ public class DataSimulator
 			// this creates sidebands in the spectrogram and need to
 			// make sure to have a large enough periodicity so that sidebands are not observed
 			// 
-			signalAmpFactor = SNR * sigN;
+			if (sigN != 0) {
+				signalAmpFactor = SNR * sigN;
+			}
+			else {
+				signalAmpFactor = SNR;
+			}
+
 			if (ampModType.equals("square") || ampModType.equals("brightpixel")){					
 					if( (i - ampPhaseSquare) % ampModPeriod > ampModPeriod*ampModDuty ) {
 						signalAmpFactor = 0;
@@ -256,15 +340,21 @@ public class DataSimulator
 			//double Yvald = Yval;
 
 			// if the value hits the rail, then truncate it
-			if (Math.abs(Xval) > 127) Xval = Math.signum(Xval) * 127;
-			if (Math.abs(Yval) > 127) Yval = Math.signum(Yval) * 127;
-
+			if (Math.abs(Xval) > 127) {
+				numBeyondDynamicRangeX+= 1;
+				Xval = Math.signum(Xval) * 127;
+			}
+			if (Math.abs(Yval) > 127) {
+				numBeyondDynamicRangeY+= 1;
+				Yval = Math.signum(Yval) * 127;
+			}
+			
 			byte X = (byte) Xval;
 			byte Y = (byte) Yval;
 			byte[] sample = new byte[]{X, Y};
 		
 			// write sample to OutputStream
-			OS.write(sample);
+			anOS.write(sample);
 
 			// if (i < 10) {
 			// 	if (i == 0) { 
@@ -295,7 +385,7 @@ public class DataSimulator
 			+ "\t  ampModPeriod\t(int > 2) periodicity of amplitude modulation, in same units of outputLength\n"
 			+ "\t  ampModDuty\t(double betweeen 0 and 1) duty cycle of square wave amplitude modulation.\n"
 			+ "\t  signalClass\t(string) a name to classify the signal.\n"
-			+ "\t  filename\t(string) output filename for data\n");
+			+ "\t  filename\t(string) output filename for data. If \"\", then a unique ID will be used for the file name\n");
 
 		System.exit(0);
 	}

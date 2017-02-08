@@ -5,5 +5,4 @@ test.json
 *.zip
 *.gzip
 *.gz
-*.jar
 target/

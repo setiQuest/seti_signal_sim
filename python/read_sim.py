@@ -1,14 +1,16 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+
 plt.ion()
 
 fig, ax = plt.subplots()
 
-def get_spectrogram(filename, shape=(129,6144)):
+def get_spectrogram(filename, shape=(129,6144), skip_lines = 1):
     ff = open(filename,'rb')
-    priv_header = json.loads(ff.readline())
-    pub_header = json.loads(ff.readline())
+
+    for i in range(0,skip_lines):
+      _ = json.loads(ff.readline())
 
     #raw_data = ff.read()  
     #complex_data = np.frombuffer(raw_data, dtype='i1').astype(np.float32).view(np.complex64)
@@ -45,4 +47,7 @@ def read_and_show(filename='test.data', log=False, aspect=True):
   else:
     ax.imshow(spectrogram)
 
-
+def log_spectrum(filename='test.data'):
+  spectrogram = get_spectrogram(filename)
+  spectrum = np.sum(spectrogram, axis=0)
+  ax.semilogy(range(0,len(spectrum)), spectrum)
