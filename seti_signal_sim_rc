@@ -1,0 +1,18 @@
+export SWIFT_API_USER="5c5f55667fb846f29946c9f1f0e0f3db"
+export SWIFT_API_KEY="v!2Q#!!]ODW7cx,T"
+export SWIFT_AUTH_URL="https://identity.open.softlayer.com/v3"
+export SWIFT_API_DOMAIN="798995"
+export SWIFT_API_DOMAIN_ID="11b0d7dcb99e42c7a5e742a6aa7977af"
+export SWIFT_TENANT="object_storage_8d3d095b_43e0_449a_ab52_49f26a243623"
+export SWIFT_TENANT_ID="cdbef52bdf7a449c96936e1071f0a46b"
+
+export JDBC_URL="jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;"
+#export DASHDBPASS="arewealon3?"
+#export DASHDBUSER="setiusers"
+export DASHDBPASS="Lepton12bluDashDB"
+export DASHDBUSER="adamcox"
+
+#export DASHDBPASS="MDAzNzUxZGI3YWJj;"
+#export DASHDBUSER="blueadmin"
+
+

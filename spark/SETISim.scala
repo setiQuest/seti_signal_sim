@@ -17,6 +17,11 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.sql.SQLException;
 import java.security.MessageDigest;
+import java.util.Properties
+
+// import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+// import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
+// import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 import scala.collection.JavaConverters._
 
@@ -24,7 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.seti.simulator.errors.MisMatchDigest
 import org.seti.simulator.utils.HexBytesUtil
-import org.seti.simulator.objectstorage.ObjectStore
+import org.seti.simulator.objectstorage.OpenStack4jObjectStore
+import org.seti.simulator.objectstorage.SwiftObjStore
 import org.seti.simulator.database.DashDB
 import org.seti.simulator.parameters.ParameterGenerator
 import org.seti.simulator.parameters.ParameterSet
@@ -48,6 +54,8 @@ object SETISim {
   //will this parallelize properly within spark?
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
+  var configurationName : String = "setipublic"
+  var container : String = "simsignals"
 
 
   def makeNoiseGen(noiseName: String, seed: Long) : NoiseGenerator =  {
@@ -59,9 +67,6 @@ object SETISim {
     }
   }
 
-  def runSim(paramGen: ParameterGenerator) {
-    
-  }
 
   def sparkSim(numPartitions: Int, nSim: Int, paramGenName: String, noiseName: String) {
     //paramGenName is the same as the signal class!
@@ -70,7 +75,6 @@ object SETISim {
     val sc = new SparkContext(conf)
 
     val initSeed: Long = System.currentTimeMillis()*nSim
-    var container = "simsignals"
 
     // var credentials = scala.collection.mutable.HashMap[String, String](
     //   "auth_url"->"https://identity.open.softlayer.com",
@@ -82,40 +86,65 @@ object SETISim {
     //   "domain_name"->sys.env("SWIFT_API_DOMAIN"),
     //   "password"->sys.env("SWIFT_API_KEY")
     // )
-    var credentials = scala.collection.mutable.HashMap[String, String](
-      "auth_url"->"https://identity.open.softlayer.com",
-      "project"->"object_storage_8d3d095b_43e0_449a_ab52_49f26a243623",
-      "project_id"->"cdbef52bdf7a449c96936e1071f0a46b",
-      "region"->"dallas",
-      "user_id"->"5c5f55667fb846f29946c9f1f0e0f3db",
-      "domain_id"->"11b0d7dcb99e42c7a5e742a6aa7977af",
-      "domain_name"->"798995",
-      "password"->"v!2Q#!!]ODW7cx,T"
-    )
-    var configurationName : String = "setipublic"
+
+    val credentials = new Properties
+    //propfile.load("simulation.properties")
+    //var cl:ClassLoader = getClass().getClassLoader()
+    //propfile.load(cl.getResourceAsStream("config.properties"))
+    credentials.load(getClass.getResourceAsStream("/simulation.properties"))
+    //scala.io.Source.fromResource("config.properties")
+
+    // val mapper = new ObjectMapper() with ScalaObjectMapper
+    // mapper.registerModule(DefaultScalaModule)
+    // val credentials = mapper.readValue[Map[String,String]](propfile.toString.replaceAll("=",":"))
+
+
+    // ObjectMapper mapper = new ObjectMapper(); 
+    // File from = new File(getClass.getResourceAsStream("/simulation.properties")); 
+    // TypeReference<HashMap<String,Object>> typeRef 
+    //         = new TypeReference<HashMap<String,Object>>() {};
+
+    // HashMap<String,Object> o = mapper.readValue(from, typeRef); 
+
+    // var credentials = scala.collection.mutable.HashMap[String, String](
+    //   "auth_url"->"https://identity.open.softlayer.com/v3",
+    //   "project"->"object_storage_8d3d095b_43e0_449a_ab52_49f26a243623",
+    //   "project_id"->"cdbef52bdf7a449c96936e1071f0a46b",
+    //   "region"->"dallas",
+    //   "user_id"->"5c5f55667fb846f29946c9f1f0e0f3db",
+    //   "domain_id"->"11b0d7dcb99e42c7a5e742a6aa7977af",
+    //   "domain_name"->"798995",
+    //   "password"->"v!2Q#!!]ODW7cx,T"
+    // )
     //val bmos = new bluemix(sc, configurationName, credentials)
     
     
-    var jdbcurl:String = "jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;"
-    var dashuser : String = "adamcox"
-    var dashpass : String = "Lepton12bluDashDB"
+    // var jdbcurl:String = "jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;"
+    // var dashuser : String = "adamcox"
+    // var dashpass : String = "Lepton12bluDashDB"
 
-    var rdd = sc.parallelize(0 to nSim, numPartitions)  
+    // var jdbcurl:String = credentials.getProperty("JDBC_URL")
+    // var dashuser : String = credentials.getProperty("DASHDBUSER")
+    // var dashpass : String = credentials.getProperty("DASHDBPASS")
+
+    println(s"Found $credentials")
+
+    println("Generating initial RDD")
+    var rdd = sc.parallelize(1 to nSim, numPartitions)  
+
+    println("Starting simulations... ")
 
     var rdd2 = rdd.map(i => {
         
-      var mConf: Configuration = new Configuration(true)
-      mConf.set("fs.swift2d.impl","com.ibm.stocator.fs.ObjectStoreFileSystem");
-      mConf.set(s"fs.swift2d.service.$configurationName.auth.url", "https://identity.open.softlayer.com/v3/auth/tokens");
-      mConf.set(s"fs.swift2d.service.$configurationName.public", "true");
-      mConf.set(s"fs.swift2d.service.$configurationName.tenant", "cdbef52bdf7a449c96936e1071f0a46b");
-      mConf.set(s"fs.swift2d.service.$configurationName.password", "v!2Q#!!]ODW7cx,T");
-      mConf.set(s"fs.swift2d.service.$configurationName.username", "5c5f55667fb846f29946c9f1f0e0f3db");
-      mConf.set(s"fs.swift2d.service.$configurationName.region", "dallas");
+      val objstore: SwiftObjStore = new SwiftObjStore(credentials, configurationName)
+      //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
 
       var seed:Long = initSeed + i.toLong
      
       var uuid:String = UUID.randomUUID().toString()
+    
+      var message = s"starting simulation $seed for $uuid\n"
+
 
       var paramGen = new ParameterGenerator(paramGenName)
       var params:ParameterSet = paramGen.next
@@ -151,10 +180,13 @@ object SETISim {
     
       //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
       
-      val dashdbSlow : DashDB = new DashDB(jdbcurl, dashuser, dashpass)  //will need to use a connection pool. 
+      val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"))  //will need to use a connection pool. 
       var status = "success"
-      var p:String  = s"swift2d://$container.$configurationName/$uuid.dat";
-      var fs:FileSystem = null
+
+      var outputFileName = s"$uuid.dat"
+
+      message += s"$outputFileName\n"
+      message += "Starting database transfer\n"
 
       try {
          
@@ -183,20 +215,16 @@ object SETISim {
 
         dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
         dashdbSlow.container(container);
-        dashdbSlow.outputFileName(s"$uuid.dat");
+        dashdbSlow.outputFileName(outputFileName);
         dashdbSlow.etag(localEtag);
         
-        fs = FileSystem.get(URI.create(p), mConf);
-        var out: FSDataOutputStream =  fs.create(new Path(p));
-        out.write("abcdefgh".getBytes());
-        out.close();
-        //etag = objstore.put(ofn, new ByteArrayInputStream(dataBytes))
+        message += s"PUT to object store $container, $outputFileName\n"
 
-        // var fschecksum = fs.getFileChecksum(new Path(p))
-        // fschecksum is null... 
-        // var etag = fschecksum.toString
+
+        objstore.put(container, outputFileName, dataOutputByteStream.toByteArray)
         
-        // if(etag != localEtag {
+        
+        // if(returnedEtag != localEtag {
         //   throw MisMatchDigest(s"$etag != $localEtag")
         // }
         // else {
@@ -205,6 +233,8 @@ object SETISim {
         // }
 
         //update database
+        message += s"INSERT to dashDB. etag: $localEtag\n"
+
         dashdbSlow.insertDataStatement.executeUpdate
 
       } catch {
@@ -213,11 +243,12 @@ object SETISim {
           //Need to print out info for logs. 
           case e : SQLException => {
             printException(e)
+            message += s"${e.getMessage}\n"
             status = "failed"
             try {
               println("Transaction is being rolled back");
               dashdbSlow.connection.rollback;
-              fs.delete(new Path(p), false);
+              objstore.delete(container, outputFileName);  
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -225,10 +256,11 @@ object SETISim {
           case e : Throwable => {
             e.printStackTrace
             status = "failed"
+            message += s"${e.getMessage}\n"
             try {
               println("Transaction is being rolled back");
               dashdbSlow.connection.rollback
-              fs.delete(new Path(p), false);
+              objstore.delete(container, outputFileName);
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -239,23 +271,40 @@ object SETISim {
         dashdbSlow.connection.close
 
       }
+      println(s"$status")
 
-      (seed, uuid, status)
+      (seed, uuid, status, message)
     })  
 
     //rdd2.count()
-    var rdd3 = rdd2.filter(i => {i._3 == "success"})
+    //var rdd3 = rdd2.filter(i => {i._3 == "failed"})
+    var results = rdd2.collect()
 
-    println("Completed " + rdd3.count() + " simulations out of " + nSim + " requested of type " +  paramGenName)
+    //println("Completed " + rdd3.count() + " simulations out of " + nSim + " requested of type " +  paramGenName)
+    //println("Failed " + rdd3.count() + " simulations out of " + nSim + " requested of type " +  paramGenName)
     
+
+    println("Returned: " + results.length + " simulations out of " + nSim + " requested of type " +  paramGenName)
+    //results.foreach(i => {println(i._4)})
+
+    var success = results.filter(i => {i._3 == "success"})
+    println("Successful: " + success.length + " simulations out of " + nSim + " requested of type " +  paramGenName)
+
+    var failures = results.filter(i => {i._3 == "failed"})
+    println("Failed messages")
+    failures.foreach(i => {println(i._4)})
+
     //println("Generated " + rdd6.count() + " simulations")
     sc.stop()
   }
 
   def serialSim(nSim: Int, paramGenName: String, noiseName: String) {
 
-    val objstore : ObjectStore = new ObjectStore(sys.env("SWIFT_API_USER"), sys.env("SWIFT_API_KEY"), sys.env("SWIFT_AUTH_URL"), sys.env("SWIFT_API_DOMAIN"), sys.env("SWIFT_TENANT"))
-    val dashdb: DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  
+    val credentials = new Properties
+    credentials.load(getClass.getResourceAsStream("/simulation.properties"))
+
+    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
+    val dashdb: DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"))  
     val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
 
     for (i <- 1 to nSim) {
@@ -266,7 +315,7 @@ object SETISim {
       var uuid:String = UUID.randomUUID().toString()
 
       //  output file name is based on uuid
-      var outputFileName = uuid + ".dat"
+      var outputFileName = s"$uuid.dat"
 
       println(params.toString)
       println("file: " + outputFileName + "\n")
@@ -312,7 +361,7 @@ object SETISim {
         dashdb.simulationVersionDate(DS.simulationVersionDate);
 
         dashdb.time(new Timestamp(System.currentTimeMillis()));
-        dashdb.container(objstore.container);
+        dashdb.container(container);
         dashdb.outputFileName(outputFileName);
 
 
@@ -339,15 +388,15 @@ object SETISim {
         //upload output file
         var dataBytes = dataOutputByteStream.toByteArray();
 
-        var etag = objstore.put(outputFileName, new ByteArrayInputStream(dataBytes))
+        var etag = objstore.put(container, outputFileName, dataBytes)
 
-        //make sure
-        dashdb.etag(etag);
 
-        //calculate local md5 and compare to returned etag
+        //calculate local md5
         val digest:MessageDigest = MessageDigest.getInstance("MD5");
         var hashBytes = digest.digest(dataBytes);
         var localEtag = HexBytesUtil.bytes2hex(hashBytes)
+        
+        dashdb.etag(localEtag);
 
         if(etag != localEtag) {
           throw MisMatchDigest(s"$etag != $localEtag")
@@ -376,7 +425,7 @@ object SETISim {
             try {
               println("Transaction is being rolled back");
               dashdb.connection.rollback;
-              objstore.delete(outputFileName)
+              objstore.delete(container, outputFileName)
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -387,7 +436,7 @@ object SETISim {
             try {
               println("Transaction is being rolled back");
               dashdb.connection.rollback
-              objstore.delete(outputFileName)
+              objstore.delete(container, outputFileName)
             } catch {
               case ee : Throwable => ee.printStackTrace
             }

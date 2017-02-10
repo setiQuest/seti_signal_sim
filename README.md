@@ -53,9 +53,22 @@ This main class for this jar file, however, is now in [spark/SETISim.scala](spar
 java -jar <jar file> <parameters>
 ```
 
+We now use the ParameterGenerator and related classes to define the parameters of the simulation. 
+In the example below, the `narrow` option tells the ParameterGenerator to choose a particular
+class and the set of simulation parameters that his definied within its code.
+
+The noise type is determined for the final option. In this case `gaussian` tells the program
+to use the GaussianNoise.java class to generate noise.
+
+##### Properties
+
+You must create the file `resources/simulation.properties`. A template with all of the necessary
+property values is in the repository. You should `cp resoureces/simulation.properties.template resoureces/simulation.properties` and then fill in the values. 
+
+##### Example
 
 ```
-java -jar target/signalsimulation-assembly-8.0.jar 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar serial 8 narrow gaussian
 ```
 
 

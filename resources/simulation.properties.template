@@ -1,0 +1,17 @@
+#Object Storage Credentials
+# Don't put quotes around your strings
+user_id=
+password=
+auth_url=https://identity.open.softlayer.com/v3
+domain=
+domain_id=
+project=
+project_id=
+region=dallas
+
+
+#DashDB Credentials
+JDBC_URL=jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;
+
+DASHDBPASS=
+DASHDBUSER=
