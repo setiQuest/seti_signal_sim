@@ -32,8 +32,8 @@ import org.seti.simulator.utils.HexBytesUtil
 import org.seti.simulator.objectstorage.OpenStack4jObjectStore
 import org.seti.simulator.objectstorage.SwiftObjStore
 import org.seti.simulator.database.DashDB
-import org.seti.simulator.parameters.ParameterGenerator
-import org.seti.simulator.parameters.ParameterSet
+import org.seti.simulator.signaldef.SignalDefFactory
+import org.seti.simulator.signaldef.SignalDef
 
 import com.ibm.ibmos2spark.bluemix
 
@@ -58,9 +58,11 @@ object SETISim {
   var container : String = "simsignals"
 
 
-  def makeNoiseGen(noiseName: String, seed: Long) : NoiseGenerator =  {
+  def makeNoiseGen(noiseName: String, seed: Long, sigdef: SignalDef) : NoiseGenerator =  {
     if (noiseName == "gaussian") {
-      return new GaussianNoise(seed);
+      var noiseGen = new GaussianNoise(seed);
+      noiseGen.setAmp(sigdef.sigmaN);
+      return noiseGen
     }
     else {
       return new FileNoise(noiseName);
@@ -134,6 +136,7 @@ object SETISim {
 
     println("Starting simulations... ")
 
+
     var rdd2 = rdd.map(i => {
         
       val objstore: SwiftObjStore = new SwiftObjStore(credentials, configurationName)
@@ -145,17 +148,16 @@ object SETISim {
     
       var message = s"starting simulation $seed for $uuid\n"
 
+      var sigdef = SignalDefFactory(paramGenName, seed)
 
-      var paramGen = new ParameterGenerator(paramGenName)
-      var params:ParameterSet = paramGen.next
-      val noiseGen = makeNoiseGen(noiseName, seed)
-      noiseGen.setAmp(params.sigmaN);
+      //var sigdef:ParameterSet = paramGen.next
+      val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
-      var DS = new DataSimulator(noiseGen, params.sigmaN, params.deltaPhiRad, params.SNR, params.drift, 
-        params.driftRateDerivate, params.sigmaSquiggle, params.outputLength, params.ampModType, params.ampModPeriod, 
-        params.ampModDuty, params.signalClass, seed, uuid);
+      var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
+        sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
+        sigdef.ampModDuty, sigdef.signalClass, seed, uuid);
 
-      var dataOutputByteStream = new ByteArrayOutputStream(params.outputLength);
+      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
 
       //only add the public header to output byte stream.
       var mapper = new ObjectMapper();
@@ -305,26 +307,27 @@ object SETISim {
 
     val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
     val dashdb: DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"))  
-    val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
-
+    //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
+    
     for (i <- 1 to nSim) {
       val seed: Long = System.currentTimeMillis()
-      val noiseGen = makeNoiseGen(noiseName, seed)
-      var params: ParameterSet = paramGen.next
-      noiseGen.setAmp(params.sigmaN);
+      var sigdef = SignalDefFactory(paramGenName, seed)
+
+      val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
+
       var uuid:String = UUID.randomUUID().toString()
 
       //  output file name is based on uuid
       var outputFileName = s"$uuid.dat"
 
-      println(params.toString)
+      println(sigdef.toString)
       println("file: " + outputFileName + "\n")
 
-      var DS = new DataSimulator(noiseGen, params.sigmaN, params.deltaPhiRad, params.SNR, params.drift, 
-        params.driftRateDerivate, params.sigmaSquiggle, params.outputLength, params.ampModType, params.ampModPeriod, 
-        params.ampModDuty, params.signalClass, seed, uuid);
+      var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
+        sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
+        sigdef.ampModDuty, sigdef.signalClass, seed, uuid);
     
-      var dataOutputByteStream = new ByteArrayOutputStream(params.outputLength);
+      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
 
       //only add the public header to output byte stream.
 

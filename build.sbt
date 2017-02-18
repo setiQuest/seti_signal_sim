@@ -99,8 +99,8 @@ mainClass in Compile := Some("org.seti.simulator.SETISim")
 resolvers +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 //can't remove Scala if want to retain the ability to run the output jar on local JVM(?)
-//can't I remove the Scala bits and still run it with >scala target/scala_2.11/simulation-assembly.jar ??
+//hmm... can't I remove the Scala bits and still run it with >scala target/scala_2.11/simulation-assembly.jar ??
 
-assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
+//assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
 
