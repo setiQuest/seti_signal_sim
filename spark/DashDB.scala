@@ -14,8 +14,8 @@ class DashDB (jdbc_url: String, user: String, pass: String) {
   val connection:Connection = DriverManager.getConnection(jdbc_url, user, pass);
 
   var insertString = "insert into setiusers.simsignals values(";
-  val tableSize = 26
-  //there are 26 parameters to add to the database
+  val tableSize = 27
+  //there are 27 parameters to add to the database
   //here's the format of that database
 
   // create table setiusers.simsignals (
@@ -157,6 +157,10 @@ class DashDB (jdbc_url: String, user: String, pass: String) {
 
   def etag(etag: String)  {
     insertDataStatement.setString(26, etag);
+  }
+
+  def noise_file_uuid(noise_file_uuid: String)  {
+    insertDataStatement.setString(27, noise_file_uuid);
   }
 
 
