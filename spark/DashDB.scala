@@ -6,14 +6,14 @@ import com.ibm.db2.jcc.DB2Driver
 
 import java.sql.Timestamp;
 
-class DashDB (jdbc_url: String, user: String, pass: String) {
+class DashDB (jdbc_url: String, user: String, pass: String, databasename: String) {
 
   val jdbcClassName="com.ibm.db2.jcc.DB2Driver"
   Class.forName(jdbcClassName)
   java.sql.DriverManager.registerDriver(new com.ibm.db2.jcc.DB2Driver);
   val connection:Connection = DriverManager.getConnection(jdbc_url, user, pass);
 
-  var insertString = "insert into setiusers.simsignals values(";
+  var insertString = s"insert into $databasename values(";
   val tableSize = 27
   //there are 27 parameters to add to the database
   //here's the format of that database
@@ -163,5 +163,40 @@ class DashDB (jdbc_url: String, user: String, pass: String) {
     insertDataStatement.setString(27, noise_file_uuid);
   }
 
+
+  //needed data retrieval queries
+  def get_sun_noise(num: Int) : ResultSet = {
+    val statement = connection.createStatement()
+    val getStatement = "select uuid, container, objectname from setiusers.sunnoise where used = ? limit ?"
+    val getPreparedStatement: PreparedStatement = connection.prepareStatement(getStatement)
+    getPreparedStatement.setBoolean(1, false)
+    getPreparedStatement.setInt(2, num)
+
+    getPreparedStatement.executeQuery
+  }
+
+  //update sun noise table
+  def update_sun_noise_usage(uuid: String, inUse: Boolean) : Int = {
+    val statement = connection.createStatement()
+
+    val updateStatement = "update setiusers.sunnoise set used = ? where uuid = ?"
+    val updatePreparedStatement: PreparedStatement = connection.prepareStatement(updateStatement)
+    updatePreparedStatement.setBoolean(1, inUse)
+    updatePreparedStatement.setString(2, uuid)
+
+    updatePreparedStatement.executeUpdate
+  }
+
+  // def update_sun_noise_usages(uuids: Array[String], inUse: Boolean) : Int = {
+  //   val statement = connection.createStatement()
+
+  //   val updateStatement = "update setiusers.sunnoise set used = ? where uuid in (?)"
+  //   val updatePreparedStatement: PreparedStatement = connection.prepareStatement(updateStatement)
+  //   updatePreparedStatement.setBoolean(1, inUse)
+    
+  //   updatePreparedStatement.setArray(2, uuids)
+
+  //   updatePreparedStatement.executeUpdate
+  // }
 
 }

@@ -107,13 +107,14 @@ public class DataSimulator
 
 		// generate Random seed
 		long seed = System.currentTimeMillis();
+		Random randGen = new Random(seed);
 
 		// create output file
 		FileOutputStream FOS = new FileOutputStream(new File(filename));
 		NoiseGenerator noiseGen = null;
 
 		if (noiseFile.equals("")){
-			noiseGen = new GaussianNoise(seed);
+			noiseGen = new GaussianNoise(randGen);
 			noiseGen.setAmp(sigmaN);
 		}
 		else {
@@ -124,7 +125,7 @@ public class DataSimulator
 
 		// create simulator
 		DataSimulator mySimulator = new DataSimulator(
-			noiseGen, sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, signalClass, seed, auuid);
+			noiseGen, sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, signalClass, seed, randGen, auuid);
  
  		//we insert the private and public headers into the output data file. 
 		ObjectMapper mapper = new ObjectMapper();
@@ -151,7 +152,7 @@ public class DataSimulator
 
 	public DataSimulator(NoiseGenerator anoiseGen, double asigN, double adPhi, double aSNR, 
 		double adrift, double adriftRateDerivate, double ajitter, int alen,
-		String aampModType, double aampModPeriod, double aampModDuty, String asignalClass, long aseed, String auuid) throws Exception
+		String aampModType, double aampModPeriod, double aampModDuty, String asignalClass, long aseed, Random arand, String auuid) throws Exception
 	{
 		noiseGen = anoiseGen;
 		sigN = asigN;
@@ -167,7 +168,7 @@ public class DataSimulator
 		signalClass = asignalClass;
 		seed = aseed;	
 		uuid = auuid;
-		rand = new Random(seed);
+		rand = arand;
 
 		reset();
 	}

@@ -7,4 +7,5 @@ test.json
 *.gz
 target/
 resources/simulation.properties
-.DS_Store
+*.DS_Store
+*.dat

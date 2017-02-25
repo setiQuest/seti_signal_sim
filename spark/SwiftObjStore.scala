@@ -49,9 +49,18 @@ class SwiftObjStore (val creds: Properties, val configurationName: String) {
     out.close();
   }
 
+  def get(container: String, objectname: String) : Array[Byte] = {
+    setup(container,objectname)
+    var fstatus = fs.getFileStatus(new Path(objectPath))
+    var vals:Array[Byte] = new Array[Byte](fstatus.getLen.toInt)
+    val in: FSDataInputStream =  fs.open(new Path(objectPath))
+    in.readFully(vals);
+    return vals;
+  }
+
   def delete(container: String, objectname: String ) {
     setup(container,objectname)
-    fs.delete(new Path(objectname), false);
+    fs.delete(new Path(objectPath), false);
   } 
 } 
 

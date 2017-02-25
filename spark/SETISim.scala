@@ -19,6 +19,8 @@ import java.sql.SQLException;
 import java.security.MessageDigest;
 import java.util.Properties
 
+import java.sql.ResultSet
+
 // import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 // import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 // import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -28,12 +30,14 @@ import scala.collection.JavaConverters._
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.seti.simulator.errors.MisMatchDigest
+import org.seti.simulator.errors.MissingSunNoise
 import org.seti.simulator.utils.HexBytesUtil
 import org.seti.simulator.objectstorage.OpenStack4jObjectStore
 import org.seti.simulator.objectstorage.SwiftObjStore
 import org.seti.simulator.database.DashDB
 import org.seti.simulator.signaldef.SignalDefFactory
 import org.seti.simulator.signaldef.SignalDef
+//import org.seti.simulator.SunNoise
 
 import com.ibm.ibmos2spark.bluemix
 
@@ -58,16 +62,18 @@ object SETISim {
   var container : String = "simsignals"
 
 
-  def makeNoiseGen(noiseName: String, seed: Long, sigdef: SignalDef) : NoiseGenerator =  {
-    if (noiseName == "gaussian") {
-      var noiseGen = new GaussianNoise(seed);
-      noiseGen.setAmp(sigdef.sigmaN);
-      return noiseGen
-    }
-    else {
-      return new FileNoise(noiseName);
-    }
-  }
+
+  // def makeNoiseGen(noiseName: String, seed: Long, sigdef: SignalDef) : NoiseGenerator =  {
+  //   if (noiseName == "gaussian") {
+  //     var noiseGen = new GaussianNoise(seed);
+  //     noiseGen.setAmp(sigdef.sigmaN);
+  //     return noiseGen
+  //   } else if (noisename == "sunnoise") {
+  //     //pop 
+  //   } else {
+  //     return new FileNoise(noiseName);
+  //   }
+  // }
 
 
   def sparkSim(numPartitions: Int, nSim: Int, paramGenName: String, noiseName: String) {
@@ -76,7 +82,7 @@ object SETISim {
     val conf = new SparkConf().setAppName("SETI Sim")
     val sc = new SparkContext(conf)
 
-    val initSeed: Long = System.currentTimeMillis()*nSim
+    val initSeed: Long = System.currentTimeMillis()*nSim*numPartitions
 
     // var credentials = scala.collection.mutable.HashMap[String, String](
     //   "auth_url"->"https://identity.open.softlayer.com",
@@ -131,152 +137,231 @@ object SETISim {
 
     println(s"Found $credentials")
 
+    
     println("Generating initial RDD")
-    var rdd = sc.parallelize(1 to nSim, numPartitions)  
+    var noiseArray : Array[(Int, String, String, String)] = new Array[(Int, String, String, String)](nSim)
+    
+    println("Noise Array of size: " + noiseArray.length)
+
+    if (noiseName == "sunnoise") {
+      //need to get list of nSim noise files from database
+      //build new rdd with (i, container, objectname)
+      println("querying database for sun noise")
+      val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  //will need to use a connection pool. 
+      var sunnoise = dashdbSlow.get_sun_noise(nSim)
+      var counter: Int = 0
+      println("filling sun noise")
+      while ( sunnoise.next ) {
+        noiseArray(counter) = (counter, sunnoise.getString("container"), sunnoise.getString("objectname"), sunnoise.getString("uuid"))
+        
+        //print out the first first and last five to make sure
+        if (counter < 5 || counter > nSim - 5) {
+          println(noiseArray(counter).toString)
+        }
+        counter+=1
+      }
+      
+      if (counter != nSim ) {
+        throw MissingSunNoise(s"Only found $counter noise files, expected $nSim")
+      }
+
+    }
+    else {
+      //build new rdd with (i, noiseName, "", "")
+      for (i <- 0 until nSim) {
+        noiseArray(i) = (i, noiseName, "", "")
+      }
+    }
+
+    var rdd = sc.parallelize(noiseArray, numPartitions)
+ 
 
     println("Starting simulations... ")
 
+    var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
+      var seed:Long = initSeed + indx
+      var randGen = new Random(seed)
 
-    var rdd2 = rdd.map(i => {
-        
-      val objstore: SwiftObjStore = new SwiftObjStore(credentials, configurationName)
-      //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
+      iter.map(i => {
+          
+        //
+        // each row, i, is a tuple: (int, noisename, "", "") or (int, container, objectname, uuid)
+        //
 
-      var seed:Long = initSeed + i.toLong
-     
-      var uuid:String = UUID.randomUUID().toString()
-    
-      var message = s"starting simulation $seed for $uuid\n"
-
-      var sigdef = SignalDefFactory(paramGenName, seed)
-
-      //var sigdef:ParameterSet = paramGen.next
-      val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
-
-      var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
-        sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
-        sigdef.ampModDuty, sigdef.signalClass, seed, uuid);
-
-      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
-
-      //only add the public header to output byte stream.
-      var mapper = new ObjectMapper();
-      var json = mapper.writeValueAsString(DS.publicHeader);
-      System.out.println(json);
-      dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
-      dataOutputByteStream.write('\n');
-
-      DS.run(dataOutputByteStream)
-
-      //close noise generator
-      // THIS will need to change with the FileNoise generator. 
-      // Will need something like a singleton class that can deliver noise files
-      // Or, perhaps from the Sun data, can create a large number of random noise files from that
-      // and distribute them on Spark (hmm... could use that distribution of noise files
-      // as the start of building an RDD by doing a sc.binaryFiles which will return an RDD of noise bytes)
-      noiseGen.close();
-
-      val digest:MessageDigest = MessageDigest.getInstance("MD5");
-      var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
-      var localEtag = HexBytesUtil.bytes2hex(hashBytes)
-    
-      //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
+        val objstore: SwiftObjStore = new SwiftObjStore(credentials, configurationName)
+        //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
+       
+        var uuid:String = UUID.randomUUID().toString()
       
-      val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"))  //will need to use a connection pool. 
-      var status = "success"
+        var message = s"starting simulation $seed for $uuid\n"
 
-      var outputFileName = s"$uuid.dat"
+        var sigdef = SignalDefFactory(paramGenName, randGen)
 
-      message += s"$outputFileName\n"
-      message += "Starting database transfer\n"
+        var noiseGen : NoiseGenerator = null
+        if(i._2 == "gaussian") {
+          noiseGen = new GaussianNoise(randGen);
+          noiseGen.setAmp(sigdef.sigmaN);
+        }
+        else {
+          if(i._3 == "") {
+            noiseGen = new FileNoise(i._2)
+            noiseGen.setAmp(1.0)
+          }
+          else {
+            noiseGen = new SunNoise(i._2, i._3, objstore) 
+            noiseGen.setAmp(1.0)
+          }
+        }
 
-      try {
-         
-        dashdbSlow.uuid(DS.uuid)
-        dashdbSlow.sigN(DS.sigN);
-        dashdbSlow.noiseName(noiseName);
-        dashdbSlow.dPhi(DS.dPhi);
-        dashdbSlow.SNR(DS.SNR);
-        dashdbSlow.drift(DS.drift);
-        dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
-        dashdbSlow.jitter(DS.jitter);
-        dashdbSlow.len(DS.len);
-        dashdbSlow.ampModType(DS.ampModType);
-        dashdbSlow.ampModPeriod(DS.ampModPeriod);
-        dashdbSlow.ampModDuty(DS.ampModDuty);
-        dashdbSlow.ampPhase(DS.ampPhase);
-        dashdbSlow.ampPhaseSquare(DS.ampPhaseSquare);
-        dashdbSlow.ampPhaseSine(DS.ampPhaseSine);
-        dashdbSlow.signalClass(DS.signalClass);
-        dashdbSlow.seed(DS.seed);
-        dashdbSlow.mDriftDivisor(DS.mDriftDivisor);
-        dashdbSlow.sinDrift(DS.sinDrift);
-        dashdbSlow.cosDrift(DS.cosDrift);
-        dashdbSlow.simulationVersion(DS.simulationVersion);
-        dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
+        //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
-        dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
-        dashdbSlow.container(container);
-        dashdbSlow.outputFileName(outputFileName);
-        dashdbSlow.etag(localEtag);
+        var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
+          sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
+          sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
+
+        var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+
+        //only add the public header to output byte stream.
+        var mapper = new ObjectMapper();
+        var json = mapper.writeValueAsString(DS.publicHeader);
+        System.out.println(json);
+        dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
+        dataOutputByteStream.write('\n');
+
+        DS.run(dataOutputByteStream)
+
+        //close noise generator
+        // THIS will need to change with the FileNoise generator. 
+        // Will need something like a singleton class that can deliver noise files
+        // Or, perhaps from the Sun data, can create a large number of random noise files from that
+        // and distribute them on Spark (hmm... could use that distribution of noise files
+        // as the start of building an RDD by doing a sc.binaryFiles which will return an RDD of noise bytes)
+        noiseGen.close();
+
+        val digest:MessageDigest = MessageDigest.getInstance("MD5");
+        var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
+        var localEtag = HexBytesUtil.bytes2hex(hashBytes)
+      
+        //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
         
-        message += s"PUT to object store $container, $outputFileName\n"
+        val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  //will need to use a connection pool. 
+        var status = "success"
 
+        var outputFileName = s"$uuid.dat"
 
-        objstore.put(container, outputFileName, dataOutputByteStream.toByteArray)
-        
-        
-        // if(returnedEtag != localEtag {
-        //   throw MisMatchDigest(s"$etag != $localEtag")
-        // }
-        // else {
-        //   println("MD5 match okay")
-        //   println("checksum algorith: " + fschecksum.getAlgorithmName)
-        // }
+        message += s"$outputFileName\n"
+        message += "Starting database transfer\n"
 
-        //update database
-        message += s"INSERT to dashDB. etag: $localEtag\n"
-
-        dashdbSlow.insertDataStatement.executeUpdate
-
-      } catch {
-          // ... code to handle exceptions
-          // if DB connection exception, don't push data file to Object Storage. 
-          //Need to print out info for logs. 
-          case e : SQLException => {
-            printException(e)
-            message += s"${e.getMessage}\n"
-            status = "failed"
-            try {
-              println("Transaction is being rolled back");
-              dashdbSlow.connection.rollback;
-              objstore.delete(container, outputFileName);  
-            } catch {
-              case ee : Throwable => ee.printStackTrace
+        try {
+          noiseGen match {
+            case m:SunNoise => {
+              dashdbSlow.update_sun_noise_usage(i._4, true)
+              dashdbSlow.noise_file_uuid(i._4)
+            }
+            case _ => {
+              dashdbSlow.noise_file_uuid("")
             }
           }
-          case e : Throwable => {
-            e.printStackTrace
-            status = "failed"
-            message += s"${e.getMessage}\n"
-            try {
-              println("Transaction is being rolled back");
-              dashdbSlow.connection.rollback
-              objstore.delete(container, outputFileName);
-            } catch {
-              case ee : Throwable => ee.printStackTrace
+
+          
+          dashdbSlow.uuid(DS.uuid)
+          dashdbSlow.sigN(DS.sigN);
+          dashdbSlow.noiseName(noiseGen.getName());
+          dashdbSlow.dPhi(DS.dPhi);
+          dashdbSlow.SNR(DS.SNR);
+          dashdbSlow.drift(DS.drift);
+          dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
+          dashdbSlow.jitter(DS.jitter);
+          dashdbSlow.len(DS.len);
+          dashdbSlow.ampModType(DS.ampModType);
+          dashdbSlow.ampModPeriod(DS.ampModPeriod);
+          dashdbSlow.ampModDuty(DS.ampModDuty);
+          dashdbSlow.ampPhase(DS.ampPhase);
+          dashdbSlow.ampPhaseSquare(DS.ampPhaseSquare);
+          dashdbSlow.ampPhaseSine(DS.ampPhaseSine);
+          dashdbSlow.signalClass(DS.signalClass);
+          dashdbSlow.seed(DS.seed);
+          dashdbSlow.mDriftDivisor(DS.mDriftDivisor);
+          dashdbSlow.sinDrift(DS.sinDrift);
+          dashdbSlow.cosDrift(DS.cosDrift);
+          dashdbSlow.simulationVersion(DS.simulationVersion);
+          dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
+
+          dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
+          dashdbSlow.container(container);
+          dashdbSlow.outputFileName(outputFileName);
+          dashdbSlow.etag(localEtag);
+          dashdbSlow.etag(localEtag);
+
+          message += s"PUT to object store $container, $outputFileName\n"
+
+
+          objstore.put(container, outputFileName, dataOutputByteStream.toByteArray)
+          
+          
+          // if(returnedEtag != localEtag {
+          //   throw MisMatchDigest(s"$etag != $localEtag")
+          // }
+          // else {
+          //   println("MD5 match okay")
+          //   println("checksum algorith: " + fschecksum.getAlgorithmName)
+          // }
+
+          //update database
+          message += s"INSERT to dashDB. etag: $localEtag\n"
+
+          dashdbSlow.insertDataStatement.executeUpdate
+
+        } catch {
+            // ... code to handle exceptions
+            // if DB connection exception, don't push data file to Object Storage. 
+            //Need to print out info for logs. 
+            case e : SQLException => {
+              printException(e)
+              message += s"SQLException\n"
+              message += s"${e.getMessage}\n"
+              status = "failed"
+              try {
+                println("Transaction is being rolled back");
+                dashdbSlow.connection.rollback;
+                objstore.delete(container, outputFileName);  
+              } catch {
+                case ee : Throwable => {
+                  ee.printStackTrace
+                  message += s"Rollback/Delete Exception\n"
+                  message += s"${ee.getMessage}\n"
+                }
+              }
             }
-          }
-      }  finally {
-        //return database connections to the pool!
-        dashdbSlow.insertDataStatement.close
-        dashdbSlow.connection.close
+            case e : Throwable => {
+              e.printStackTrace
+              status = "failed"
+              message += s"General Exception\n"
+              message += s"${e.getMessage}\n"
+              try {
+                println("Transaction is being rolled back");
+                dashdbSlow.connection.rollback
+                objstore.delete(container, outputFileName);
+              } catch {
+                case ee : Throwable => {
+                  ee.printStackTrace
+                  message += s"Rollback/Delete Exception\n"
+                  message += s"${ee.getMessage}\n"
+                }
+              }
+            }
+        }  finally {
+          //return database connections to the pool!
+          message += "Closing db connection\n"
+          dashdbSlow.insertDataStatement.close
+          dashdbSlow.connection.close
+          message += "Closed db connection\n"
+        }
+        println(s"$status")
 
-      }
-      println(s"$status")
-
-      (seed, uuid, status, message)
-    })  
+        (seed, uuid, status, message, outputFileName)
+      })  
+    }
 
     //rdd2.count()
     //var rdd3 = rdd2.filter(i => {i._3 == "failed"})
@@ -291,6 +376,7 @@ object SETISim {
 
     var success = results.filter(i => {i._3 == "success"})
     println("Successful: " + success.length + " simulations out of " + nSim + " requested of type " +  paramGenName)
+    success.foreach(i => {println("generated file: " + i._5)})
 
     var failures = results.filter(i => {i._3 == "failed"})
     println("Failed messages")
@@ -306,14 +392,26 @@ object SETISim {
     credentials.load(getClass.getResourceAsStream("/simulation.properties"))
 
     val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
-    val dashdb: DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"))  
+    val dashdb: DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  
     //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
     
-    for (i <- 1 to nSim) {
-      val seed: Long = System.currentTimeMillis()
-      var sigdef = SignalDefFactory(paramGenName, seed)
+    val seed: Long = System.currentTimeMillis()
+    var randGen = new Random(seed)
 
-      val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
+    for (i <- 0 until nSim) {
+      
+      var sigdef = SignalDefFactory(paramGenName, randGen)
+
+      var noiseGen : NoiseGenerator = null
+      if(noiseName == "gaussian") {
+        noiseGen = new GaussianNoise(randGen)
+        noiseGen.setAmp(sigdef.sigmaN)
+      }  //todo -- need to handle sun noise here... maybe. probably won't ever run this in serial mode anyways. serial mode is primarily for testing
+      else {
+        noiseGen = new FileNoise(noiseName)
+        noiseGen.setAmp(1.0)
+      }
+      //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
       var uuid:String = UUID.randomUUID().toString()
 
@@ -325,7 +423,7 @@ object SETISim {
 
       var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
         sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
-        sigdef.ampModDuty, sigdef.signalClass, seed, uuid);
+        sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
     
       var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
 
@@ -339,7 +437,17 @@ object SETISim {
 
       try {
             
-
+        // noiseGen match {
+        //   case m:SunNoise => {
+        //     dashdb.update_sun_noise_usage(i._4, true)
+        //     dashdb.noise_file_uuid(i._4)
+        //   }
+        //   case _ => {
+        //     dashdb.noise_file_uuid("")
+        //   }
+        // }
+        dashdb.noise_file_uuid("")
+        
         dashdb.uuid(DS.uuid)
         dashdb.sigN(DS.sigN);
         dashdb.noiseName(noiseGen.getName());

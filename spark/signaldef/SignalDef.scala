@@ -2,14 +2,12 @@ package org.seti.simulator.signaldef
 
 import java.util.Random;
 
-abstract class SignalDef (seed: Long)  {
-
-  val rand = new Random(seed);
+abstract class SignalDef (val rand: Random)  {
 
   //default values
   var sigmaN: Double = 13 
   var deltaPhiRad: Double = 0.0
-  var SNR: Double = 0.1
+  var SNR: Double = 0.0
   var drift: Double = 0.0
   var driftRateDerivate: Double = 0.0
   var sigmaSquiggle: Double = 0.0

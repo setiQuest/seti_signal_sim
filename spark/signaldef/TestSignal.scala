@@ -1,6 +1,8 @@
 package org.seti.simulator.signaldef
 
-private class TestSignal(seed: Long) extends SignalDef(seed) {
+import java.util.Random;
+
+private class TestSignal(rand: Random) extends SignalDef(rand) {
   
   signalClass = "test"
 

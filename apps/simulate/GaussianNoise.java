@@ -5,9 +5,9 @@ public class GaussianNoise extends NoiseGenerator
 {
   private Random rand = null;
 
-  public GaussianNoise(long seed) {
+  public GaussianNoise(Random aRand) {
     this.setName("gaussian_noise_generator");
-    rand = new Random(seed);
+    rand = aRand;
   }
 
   @Override
