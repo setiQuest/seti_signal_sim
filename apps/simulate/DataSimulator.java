@@ -268,41 +268,14 @@ public class DataSimulator
 	{
 		
 
+		//double prevCosPhi = cosPhi;
+		//double prevSinPhi = sinPhi;
+		boolean prevSinSign = sinPhi > 0;
+		boolean ampOn = true;
+
 		// loop over samples
 		for (int i = 0; i < len; ++i)
 		{
-
-			//allow for drift rate to change
-			sinDrift = sinDrift + (driftRateDerivate/1000000.0) / mDriftDivisor;
-			if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
-			cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
-
-			// propagate signal frequency to next value using drift
-			double temp = cosPhi * cosDrift - sinPhi * sinDrift;
-			sinPhi      = cosPhi * sinDrift + sinPhi * cosDrift;
-			cosPhi = temp;
-
-			// propagate signal frequency to next value by adding jitter
-			// frequency does random walk
-			double sinDelta = 2.0 * (rand.nextDouble() - 0.5) * jitter;
-			double cosDelta = Math.sqrt(1 - sinDelta * sinDelta);
-			temp   = cosPhi * cosDelta - sinPhi * sinDelta;
-			sinPhi = cosPhi * sinDelta + sinPhi * cosDelta;
-			cosPhi = temp;
-
-			// normalization (potential optimization here)
-			double mag = Math.sqrt(cosPhi * cosPhi + sinPhi * sinPhi);
-			cosPhi /= mag;
-			sinPhi /= mag;
-
-			// propagate current signal value to next using updated frequency
-			double tmpX = signalX * cosPhi - signalY * sinPhi;
-			signalY        = signalX * sinPhi + signalY * cosPhi;
-			signalX = tmpX;
-			mag = Math.sqrt(signalX * signalX + signalY * signalY);
-			signalX /= mag;
-			signalY /= mag;
-
 
 			// this creates sidebands in the spectrogram and need to
 			// make sure to have a large enough periodicity so that sidebands are not observed
@@ -335,10 +308,15 @@ public class DataSimulator
 				throw e;
 			}
 
-			double Xval = dNoiseX + signalX * signalAmpFactor;
-			double Yval = dNoiseY + signalY * signalAmpFactor	;
+			double Xval = dNoiseX;
+			double Yval = dNoiseY;
 			//double Xvald = Xval;
 			//double Yvald = Yval;
+
+			if (ampOn) {
+				Xval += signalX * signalAmpFactor;
+				Yval += signalY * signalAmpFactor	;
+			}
 
 			// if the value hits the rail, then truncate it
 			if (Math.abs(Xval) > 127) {
@@ -357,6 +335,58 @@ public class DataSimulator
 			// write sample to OutputStream
 			anOS.write(sample);
 
+			
+			//calculate next amplitude
+
+
+			//allow for drift rate to change
+			if(driftRateDerivate != 0){
+				sinDrift = sinDrift + (driftRateDerivate/1000000.0) / mDriftDivisor;
+				if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
+				cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
+			}
+
+			// propagate signal frequency to next value using drift
+			double temp = cosPhi * cosDrift - sinPhi * sinDrift;
+			sinPhi      = cosPhi * sinDrift + sinPhi * cosDrift;
+			cosPhi = temp;
+
+			// propagate signal frequency to next value by adding jitter
+			// frequency does random walk
+			double sinDelta = 2.0 * (rand.nextDouble() - 0.5) * jitter;
+			double cosDelta = Math.sqrt(1 - sinDelta * sinDelta);
+			temp   = cosPhi * cosDelta - sinPhi * sinDelta;
+			sinPhi = cosPhi * sinDelta + sinPhi * cosDelta;
+			cosPhi = temp;
+
+			// normalization (potential optimization here)
+			double mag = Math.sqrt(cosPhi * cosPhi + sinPhi * sinPhi);
+			cosPhi /= mag;
+			sinPhi /= mag;
+
+			// propagate current signal value to next using updated frequency
+			double tmpX = signalX * cosPhi - signalY * sinPhi;
+			signalY        = signalX * sinPhi + signalY * cosPhi;
+			signalX = tmpX;
+			mag = Math.sqrt(signalX * signalX + signalY * signalY);
+			signalX /= mag;
+			signalY /= mag;
+
+			// fake anti-aliasing filter...
+			if (cosPhi < -0.99) {
+				if (prevSinSign != sinPhi > 0) {
+					//we've crossed the boundary, need to flip signal switch
+					ampOn = !ampOn;
+					System.out.format("i: %d, line: %d, cosPhi: %.8f, sinPhi: %.8f.%n", i, i/spectrogramSize, cosPhi, sinPhi);
+					
+				}
+			}
+
+			prevSinSign = sinPhi > 0;
+			//prevCosPhi = cosPhi;
+			//prevSinPhi = sinPhi;
+
+			
 			// if (i < 10) {
 			// 	if (i == 0) { 
 			// 		System.out.println("Printing out the first 10 samples");
@@ -364,6 +394,8 @@ public class DataSimulator
 			// 	System.out.println(Xvald + " , " + Yvald + " ; " +  Xval + " , " + Yval  + " ; " +  X + " , " + Y + "; 0x:" + bytesToHex(sample));
 			// 	//System.out.println(bytesToHex(sample));
 			// }
+
+
 		}
 
   }
