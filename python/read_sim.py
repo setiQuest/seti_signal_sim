@@ -35,9 +35,9 @@ def to_json(fin,fout):
 #isn't this faster?
 #spectrogram = cpfft.real**2 + cpfft.imag**2
 
-def read_and_show(filename='test.data', log=False, aspect=True):
+def read_and_show(filename='test.data', log=False, aspect=True, skip_lines=1):
 
-  spectrogram = get_spectrogram(filename)
+  spectrogram = get_spectrogram(filename, skip_lines=skip_lines)
   if log:
     spectrogram = np.log(spectrogram)
 
