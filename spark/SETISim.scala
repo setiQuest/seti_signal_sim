@@ -143,6 +143,9 @@ object SETISim {
     
     println("Noise Array of size: " + noiseArray.length)
 
+
+    var rand = new Random(initSeed)
+
     if (noiseName == "sunnoise") {
       //need to get list of nSim noise files from database
       //build new rdd with (i, container, objectname)
@@ -152,8 +155,13 @@ object SETISim {
       var counter: Int = 0
       println("filling sun noise")
       while ( sunnoise.next ) {
-        noiseArray(counter) = (counter, sunnoise.getString("container"), sunnoise.getString("objectname"), sunnoise.getString("uuid"))
-        
+
+        if (rand.nextDouble > 0.27) {  //keep this fraction secret!  some number of the simulated noise files is gaussian!
+          noiseArray(counter) = (counter, sunnoise.getString("container"), sunnoise.getString("objectname"), sunnoise.getString("uuid"))
+        }
+        else {
+          noiseArray(counter) = (counter, "gaussian", "", "")
+        }
         //print out the first first and last five to make sure
         if (counter < 5 || counter > nSim - 5) {
           println(noiseArray(counter).toString)
