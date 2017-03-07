@@ -2,7 +2,7 @@ package org.seti.simulator.signaldef
 
 import java.util.Random;
 
-private class TestSignal(rand: Random, dataClass: String) extends SignalDef(rand) {
+private class TestSignal(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
   
   signalClass = "test"
 

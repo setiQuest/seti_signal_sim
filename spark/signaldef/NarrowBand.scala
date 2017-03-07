@@ -2,7 +2,7 @@ package org.seti.simulator.signaldef
 
 import java.util.Random;
 
-private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand) {
+private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
 
   signalClass = "narrowband"
 
