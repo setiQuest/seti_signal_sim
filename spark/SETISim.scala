@@ -59,9 +59,7 @@ object SETISim {
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
   var configurationName : String = "setipublic"
-  var simulatedSignalContainer : String = ""
   var dataClass : String = "" //this will either be 'training' or 'test'
-  var simulationProperties: Properties = _
 
 
 
@@ -97,8 +95,9 @@ object SETISim {
     //   "password"->sys.env("SWIFT_API_KEY")
     // )
 
+    
     //val simulationProperties = new Properties
-    //propfile.load("simulation.properties")
+    //propfile.load("/simulation.properties")
     //var cl:ClassLoader = getClass().getClassLoader()
     //propfile.load(cl.getResourceAsStream("config.properties"))
     //simulationProperties.load(getClass.getResourceAsStream("/simulation.properties"))
@@ -133,11 +132,31 @@ object SETISim {
     // var dashuser : String = "adamcox"
     // var dashpass : String = "Lepton12bluDashDB"
 
-    // var jdbcurl:String = simulationProperties.getProperty("JDBC_URL")
-    // var dashuser : String = simulationProperties.getProperty("DASHDBUSER")
-    // var dashpass : String = simulationProperties.getProperty("DASHDBPASS")
+    // var jdbcurl:String = props.getProperty("JDBC_URL")
+    // var dashuser : String = props.getProperty("DASHDBUSER")
+    // var dashpass : String = props.getProperty("DASHDBPASS")
+    //needed for the SwiftObjStore
+    val props = new Properties
+    var simulatedSignalContainer : String = ""
 
-    println(s"Found $simulationProperties")
+    props.load(getClass.getResourceAsStream("/simulation.properties"))
+    dataClass match {
+      case "test" => {
+        simulatedSignalContainer = props.getProperty("test_data_container")
+      }
+      case "training" => {
+        simulatedSignalContainer = props.getProperty("training_data_container")
+      }
+      case "private" => {
+        simulatedSignalContainer = props.getProperty("private_data_container")
+      }
+      case _ => {
+        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
+        return
+      }
+    }
+
+    println(s"Found $props")
     
     println("Generating initial RDD")
     var noiseArray : Array[(Int, String, String, String)] = new Array[(Int, String, String, String)](nSim)
@@ -151,7 +170,7 @@ object SETISim {
       //need to get list of nSim noise files from database
       //build new rdd with (i, container, objectname)
       println("querying database for sun noise")
-      val dashdbSlow : DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  //will need to use a connection pool. 
+      val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
       var sunnoise = dashdbSlow.get_sun_noise(nSim)
       var counter: Int = 0
       println("filling sun noise")
@@ -187,9 +206,11 @@ object SETISim {
 
     println("Starting simulations... ")
 
+    
     var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
       var seed:Long = initSeed + indx
       var randGen = new Random(seed)
+
 
       iter.map(i => {
           
@@ -197,9 +218,10 @@ object SETISim {
         // each row, i, is a tuple: (int, noisename, "", "") or (int, container, objectname, uuid)
         //
 
-        val objstore: SwiftObjStore = new SwiftObjStore(simulationProperties, configurationName)
-        //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(simulationProperties, configurationName)
-       
+        val objstore: SwiftObjStore = new SwiftObjStore(props, configurationName)
+        //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
+        val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
+
         var uuid:String = UUID.randomUUID().toString()
       
         var message = s"starting simulation $seed for $uuid\n"
@@ -239,12 +261,6 @@ object SETISim {
 
         DS.run(dataOutputByteStream)
 
-        //close noise generator
-        // THIS will need to change with the FileNoise generator. 
-        // Will need something like a singleton class that can deliver noise files
-        // Or, perhaps from the Sun data, can create a large number of random noise files from that
-        // and distribute them on Spark (hmm... could use that distribution of noise files
-        // as the start of building an RDD by doing a sc.binaryFiles which will return an RDD of noise bytes)
         noiseGen.close();
 
         val digest:MessageDigest = MessageDigest.getInstance("MD5");
@@ -253,7 +269,6 @@ object SETISim {
       
         //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
         
-        val dashdbSlow : DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  //will need to use a connection pool. 
         var status = "success"
 
         var outputFileName = s"$uuid.dat"
@@ -299,7 +314,6 @@ object SETISim {
           dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
           dashdbSlow.container(simulatedSignalContainer);
           dashdbSlow.outputFileName(outputFileName);
-          dashdbSlow.etag(localEtag);
           dashdbSlow.etag(localEtag);
 
           message += s"PUT to object store $simulatedSignalContainer, $outputFileName\n"
@@ -360,16 +374,17 @@ object SETISim {
               }
             }
         }  finally {
-          //return database connections to the pool!
-          message += "Closing db connection\n"
+          message += "Closing db prepared statement\n"
           dashdbSlow.insertDataStatement.close
           dashdbSlow.connection.close
-          message += "Closed db connection\n"
         }
         println(s"$status")
 
         (seed, uuid, status, message, outputFileName)
+
       })  
+
+      
     }
 
     //rdd2.count()
@@ -397,9 +412,28 @@ object SETISim {
 
   def serialSim(nSim: Int, paramGenName: String, noiseName: String) {
 
+    val props = new Properties
+    var simulatedSignalContainer : String = ""
     
-    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(simulationProperties, configurationName)
-    val dashdb: DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  
+    props.load(getClass.getResourceAsStream("/simulation.properties"))
+    dataClass match {
+      case "test" => {
+        simulatedSignalContainer = props.getProperty("test_data_container")
+      }
+      case "training" => {
+        simulatedSignalContainer = props.getProperty("training_data_container")
+      }
+      case "private" => {
+        simulatedSignalContainer = props.getProperty("private_data_container")
+      }
+      case _ => {
+        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
+        return
+      }
+    }
+
+    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
+    val dashdb: DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  
     //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
     
     val seed: Long = System.currentTimeMillis()
@@ -582,25 +616,8 @@ object SETISim {
 
   def main(args: Array[String]) {
     
-    simulationProperties = new Properties
-    simulationProperties.load(getClass.getResourceAsStream("/simulation.properties"))
-
     dataClass = args(0)
     
-    dataClass match {
-      case "test" => {
-        simulatedSignalContainer = simulationProperties.getProperty("test_data_container")
-      }
-      case "training" => {
-        simulatedSignalContainer = simulationProperties.getProperty("training_data_container")
-      }
-      case _ => {
-        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
-        return
-      }
-    }
-
-
     //really, I should move all these args to 'val's for this object,
     //then won't have to pass them in to the functions directly. 
 
