@@ -54,7 +54,7 @@ java -jar <jar file> <parameters>
 ```
 
 We now use the ParameterGenerator and related classes to define the parameters of the simulation. 
-In the example below, the `narrow` option tells the ParameterGenerator to choose a particular
+In the example below, the `narrowband` option tells the ParameterGenerator to choose a particular
 class and the set of simulation parameters that his definied within its code.
 
 The noise type is determined for the final option. In this case `gaussian` tells the program
@@ -68,9 +68,18 @@ property values is in the repository. You should `cp resoureces/simulation.prope
 ##### Example
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar serial 8 narrow gaussian
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 8 narrowband gaussian
 ```
 
+or
+
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 8 4 narrowband gaussian
+```
+
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 1000 narrowband sunnnoise
+```
 
 ### OLD way, no SBT
 

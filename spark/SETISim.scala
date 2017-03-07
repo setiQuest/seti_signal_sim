@@ -59,7 +59,9 @@ object SETISim {
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
   var configurationName : String = "setipublic"
-  var container : String = "simsignals"
+  var simulatedSignalContainer : String = ""
+  var dataClass : String = "" //this will either be 'training' or 'test'
+  var simulationProperties: Properties = _
 
 
 
@@ -84,7 +86,7 @@ object SETISim {
 
     val initSeed: Long = System.currentTimeMillis()*nSim*numPartitions
 
-    // var credentials = scala.collection.mutable.HashMap[String, String](
+    // var simulationProperties = scala.collection.mutable.HashMap[String, String](
     //   "auth_url"->"https://identity.open.softlayer.com",
     //   "project"->sys.env("SWIFT_TENANT"),
     //   "project_id"->sys.env("SWIFT_TENANT_ID"),
@@ -95,16 +97,16 @@ object SETISim {
     //   "password"->sys.env("SWIFT_API_KEY")
     // )
 
-    val credentials = new Properties
+    //val simulationProperties = new Properties
     //propfile.load("simulation.properties")
     //var cl:ClassLoader = getClass().getClassLoader()
     //propfile.load(cl.getResourceAsStream("config.properties"))
-    credentials.load(getClass.getResourceAsStream("/simulation.properties"))
+    //simulationProperties.load(getClass.getResourceAsStream("/simulation.properties"))
     //scala.io.Source.fromResource("config.properties")
 
     // val mapper = new ObjectMapper() with ScalaObjectMapper
     // mapper.registerModule(DefaultScalaModule)
-    // val credentials = mapper.readValue[Map[String,String]](propfile.toString.replaceAll("=",":"))
+    // val simulationProperties = mapper.readValue[Map[String,String]](propfile.toString.replaceAll("=",":"))
 
 
     // ObjectMapper mapper = new ObjectMapper(); 
@@ -114,7 +116,7 @@ object SETISim {
 
     // HashMap<String,Object> o = mapper.readValue(from, typeRef); 
 
-    // var credentials = scala.collection.mutable.HashMap[String, String](
+    // var simulationProperties = scala.collection.mutable.HashMap[String, String](
     //   "auth_url"->"https://identity.open.softlayer.com/v3",
     //   "project"->"object_storage_8d3d095b_43e0_449a_ab52_49f26a243623",
     //   "project_id"->"cdbef52bdf7a449c96936e1071f0a46b",
@@ -124,19 +126,18 @@ object SETISim {
     //   "domain_name"->"798995",
     //   "password"->"v!2Q#!!]ODW7cx,T"
     // )
-    //val bmos = new bluemix(sc, configurationName, credentials)
+    //val bmos = new bluemix(sc, configurationName, simulationProperties)
     
     
     // var jdbcurl:String = "jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;"
     // var dashuser : String = "adamcox"
     // var dashpass : String = "Lepton12bluDashDB"
 
-    // var jdbcurl:String = credentials.getProperty("JDBC_URL")
-    // var dashuser : String = credentials.getProperty("DASHDBUSER")
-    // var dashpass : String = credentials.getProperty("DASHDBPASS")
+    // var jdbcurl:String = simulationProperties.getProperty("JDBC_URL")
+    // var dashuser : String = simulationProperties.getProperty("DASHDBUSER")
+    // var dashpass : String = simulationProperties.getProperty("DASHDBPASS")
 
-    println(s"Found $credentials")
-
+    println(s"Found $simulationProperties")
     
     println("Generating initial RDD")
     var noiseArray : Array[(Int, String, String, String)] = new Array[(Int, String, String, String)](nSim)
@@ -150,7 +151,7 @@ object SETISim {
       //need to get list of nSim noise files from database
       //build new rdd with (i, container, objectname)
       println("querying database for sun noise")
-      val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  //will need to use a connection pool. 
+      val dashdbSlow : DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  //will need to use a connection pool. 
       var sunnoise = dashdbSlow.get_sun_noise(nSim)
       var counter: Int = 0
       println("filling sun noise")
@@ -196,14 +197,14 @@ object SETISim {
         // each row, i, is a tuple: (int, noisename, "", "") or (int, container, objectname, uuid)
         //
 
-        val objstore: SwiftObjStore = new SwiftObjStore(credentials, configurationName)
-        //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
+        val objstore: SwiftObjStore = new SwiftObjStore(simulationProperties, configurationName)
+        //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(simulationProperties, configurationName)
        
         var uuid:String = UUID.randomUUID().toString()
       
         var message = s"starting simulation $seed for $uuid\n"
 
-        var sigdef = SignalDefFactory(paramGenName, randGen)
+        var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
 
         var noiseGen : NoiseGenerator = null
         if(i._2 == "gaussian") {
@@ -252,7 +253,7 @@ object SETISim {
       
         //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
         
-        val dashdbSlow : DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  //will need to use a connection pool. 
+        val dashdbSlow : DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  //will need to use a connection pool. 
         var status = "success"
 
         var outputFileName = s"$uuid.dat"
@@ -296,15 +297,15 @@ object SETISim {
           dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
 
           dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
-          dashdbSlow.container(container);
+          dashdbSlow.container(simulatedSignalContainer);
           dashdbSlow.outputFileName(outputFileName);
           dashdbSlow.etag(localEtag);
           dashdbSlow.etag(localEtag);
 
-          message += s"PUT to object store $container, $outputFileName\n"
+          message += s"PUT to object store $simulatedSignalContainer, $outputFileName\n"
 
 
-          objstore.put(container, outputFileName, dataOutputByteStream.toByteArray)
+          objstore.put(simulatedSignalContainer, outputFileName, dataOutputByteStream.toByteArray)
           
           
           // if(returnedEtag != localEtag {
@@ -332,7 +333,7 @@ object SETISim {
               try {
                 println("Transaction is being rolled back");
                 dashdbSlow.connection.rollback;
-                objstore.delete(container, outputFileName);  
+                objstore.delete(simulatedSignalContainer, outputFileName);  
               } catch {
                 case ee : Throwable => {
                   ee.printStackTrace
@@ -349,7 +350,7 @@ object SETISim {
               try {
                 println("Transaction is being rolled back");
                 dashdbSlow.connection.rollback
-                objstore.delete(container, outputFileName);
+                objstore.delete(simulatedSignalContainer, outputFileName);
               } catch {
                 case ee : Throwable => {
                   ee.printStackTrace
@@ -396,11 +397,9 @@ object SETISim {
 
   def serialSim(nSim: Int, paramGenName: String, noiseName: String) {
 
-    val credentials = new Properties
-    credentials.load(getClass.getResourceAsStream("/simulation.properties"))
-
-    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(credentials, configurationName)
-    val dashdb: DashDB = new DashDB(credentials.getProperty("JDBC_URL"), credentials.getProperty("DASHDBUSER"), credentials.getProperty("DASHDBPASS"), credentials.getProperty("databasename"))  
+    
+    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(simulationProperties, configurationName)
+    val dashdb: DashDB = new DashDB(simulationProperties.getProperty("JDBC_URL"), simulationProperties.getProperty("DASHDBUSER"), simulationProperties.getProperty("DASHDBPASS"), simulationProperties.getProperty("databasename"))  
     //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
     
     val seed: Long = System.currentTimeMillis()
@@ -408,7 +407,7 @@ object SETISim {
 
     for (i <- 0 until nSim) {
       
-      var sigdef = SignalDefFactory(paramGenName, randGen)
+      var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
 
       var noiseGen : NoiseGenerator = null
       if(noiseName == "gaussian") {
@@ -480,7 +479,7 @@ object SETISim {
         dashdb.simulationVersionDate(DS.simulationVersionDate);
 
         dashdb.time(new Timestamp(System.currentTimeMillis()));
-        dashdb.container(container);
+        dashdb.container(simulatedSignalContainer);
         dashdb.outputFileName(outputFileName);
 
 
@@ -507,7 +506,7 @@ object SETISim {
         //upload output file
         var dataBytes = dataOutputByteStream.toByteArray();
 
-        var etag = objstore.put(container, outputFileName, dataBytes)
+        var etag = objstore.put(simulatedSignalContainer, outputFileName, dataBytes)
 
 
         //calculate local md5
@@ -544,7 +543,7 @@ object SETISim {
             try {
               println("Transaction is being rolled back");
               dashdb.connection.rollback;
-              objstore.delete(container, outputFileName)
+              objstore.delete(simulatedSignalContainer, outputFileName)
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -555,7 +554,7 @@ object SETISim {
             try {
               println("Transaction is being rolled back");
               dashdb.connection.rollback
-              objstore.delete(container, outputFileName)
+              objstore.delete(simulatedSignalContainer, outputFileName)
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -583,18 +582,40 @@ object SETISim {
 
   def main(args: Array[String]) {
     
-    val simType:String = args(0)
+    simulationProperties = new Properties
+    simulationProperties.load(getClass.getResourceAsStream("/simulation.properties"))
+
+    dataClass = args(0)
+    
+    dataClass match {
+      case "test" => {
+        simulatedSignalContainer = simulationProperties.getProperty("test_data_container")
+      }
+      case "training" => {
+        simulatedSignalContainer = simulationProperties.getProperty("training_data_container")
+      }
+      case _ => {
+        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
+        return
+      }
+    }
+
+
+    //really, I should move all these args to 'val's for this object,
+    //then won't have to pass them in to the functions directly. 
+
+    val simType:String = args(1)
     
     if (simType == "spark") {
-      val numPartitions:Int = args(1).toInt
-      val nSims:Int = args(2).toInt
-      val noiseName:String = args(4)
-      sparkSim(numPartitions, nSims, args(3), noiseName)
+      val numPartitions:Int = args(2).toInt
+      val nSims:Int = args(3).toInt
+      val noiseName:String = args(5)
+      sparkSim(numPartitions, nSims, args(4), noiseName)
     }
     else {
-      val nSims:Int = args(1).toInt
-      val noiseName:String = args(3)
-      serialSim(nSims, args(2), noiseName)
+      val nSims:Int = args(2).toInt
+      val noiseName:String = args(4)
+      serialSim(nSims, args(3), noiseName)
     }
 
   }

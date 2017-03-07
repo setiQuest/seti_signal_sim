@@ -6,19 +6,19 @@ import org.seti.simulator.signaldef._
 
 object SignalDefFactory {
 
-  def apply(signalClass: String, rand: Random) : SignalDef = signalClass.toLowerCase match {
+  def apply(signalClass: String, rand: Random, dataClass: String) : SignalDef = signalClass.toLowerCase match {
     case "test" => {
-      val signalDef = new TestSignal(rand)
+      val signalDef = new TestSignal(rand,dataClass)
       signalDef.next
       return signalDef
     }
     case "narrowband" => {
-      val signalDef = new NarrowBand(rand)
+      val signalDef = new NarrowBand(rand,dataClass)
       signalDef.next
       return signalDef
     }
     case "noise" => {
-      val signalDef = new PureNoise(rand)
+      val signalDef = new PureNoise(rand,dataClass)
       signalDef.next
       return signalDef
     }
