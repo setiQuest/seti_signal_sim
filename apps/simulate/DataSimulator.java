@@ -273,6 +273,7 @@ public class DataSimulator
 		boolean prevSinSign = sinPhi > 0;
 		boolean ampOn = true;
 
+
 		// loop over samples
 		for (int i = 0; i < len; ++i)
 		{
@@ -377,16 +378,14 @@ public class DataSimulator
 				if (prevSinSign != sinPhi > 0) {
 					//we've crossed the boundary, need to flip signal switch
 					ampOn = !ampOn;
-					System.out.format("i: %d, line: %d, cosPhi: %.8f, sinPhi: %.8f.%n", i, i/spectrogramSize, cosPhi, sinPhi);
-					
-				}
-			}
+					System.out.format("i: %d, ACA spectrogram line: %d, cosPhi: %.8f, sinPhi: %.8f.%n", i, i/6144, cosPhi, sinPhi);
+        }
+      }
 
-			prevSinSign = sinPhi > 0;
-			//prevCosPhi = cosPhi;
-			//prevSinPhi = sinPhi;
-
-			
+      prevSinSign = sinPhi > 0;
+      //prevCosPhi = cosPhi;
+      //prevSinPhi = sinPhi;
+      
 			// if (i < 10) {
 			// 	if (i == 0) { 
 			// 		System.out.println("Printing out the first 10 samples");
