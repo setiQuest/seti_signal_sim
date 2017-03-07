@@ -81,6 +81,12 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 8 
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 1000 narrowband sunnnoise
 ```
 
+
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 10000 narrowband sunnnoise
+```
+
+
 ### OLD way, no SBT
 
 If you did not package the compiled .class files into a jar file, you can call the 
