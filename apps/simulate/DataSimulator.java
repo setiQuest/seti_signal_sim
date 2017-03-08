@@ -24,8 +24,8 @@ public class DataSimulator
 	public double mDriftDivisor = 1024;
 
 
-	public int simulationVersion = 8;
-	public String simulationVersionDate = "12 Jan 2016";
+	public int simulationVersion = 9;
+	public String simulationVersionDate = "8 Mar 2017";
 	
 	public Random rand = null;
 	public NoiseGenerator noiseGen = null;
@@ -237,7 +237,7 @@ public class DataSimulator
 		privateHeader = new HashMap<String, Object>();
 		privateHeader.put("sigma_noise", sigN);
 		privateHeader.put("noise_name", noiseGen.getName());
-		privateHeader.put("delta_phi_rad", dPhiRad);
+		privateHeader.put("delta_phi", dPhi);
 		privateHeader.put("signal_to_noise_ratio", SNR);
 		privateHeader.put("drift",drift);
 		privateHeader.put("drift_rate_derivative",driftRateDerivate);
