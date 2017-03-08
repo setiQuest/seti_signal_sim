@@ -229,12 +229,13 @@ object SETISim {
       mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
       mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
 
-      mConf.set(s"fs.stocator.MaxPerRoute", "200");
-      mConf.set(s"fs.stocator.MaxTotal", "1000");
-      mConf.set(s"fs.stocator.SoTimeout", "10000");
-      mConf.set(s"fs.stocator.ReqConnectTimeout", "10000");
-      mConf.set(s"fs.stocator.ReqConnectionRequestTimeout", "10000");
-      mConf.set(s"fs.stocator.ReqSocketTimeout", "10000");
+      var nSimDivFive = nSim/5
+      mConf.set(s"fs.stocator.MaxPerRoute", nSimDivFive.toString)
+      mConf.set(s"fs.stocator.MaxTotal", nSim.toString)
+      mConf.set(s"fs.stocator.SoTimeout", "10000")
+      mConf.set(s"fs.stocator.ReqConnectTimeout", "10000")
+      mConf.set(s"fs.stocator.ReqConnectionRequestTimeout", "10000")
+      mConf.set(s"fs.stocator.ReqSocketTimeout", "10000")
 
       iter.map(i => {
           
@@ -316,7 +317,7 @@ object SETISim {
           dashdbSlow.uuid(DS.uuid)
           dashdbSlow.sigN(DS.sigN);
           dashdbSlow.noiseName(noiseGen.getName());
-          dashdbSlow.dPhiRad(DS.dPhiRad);
+          dashdbSlow.dPhi(DS.dPhi);
           dashdbSlow.SNR(DS.SNR);
           dashdbSlow.drift(DS.drift);
           dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
@@ -402,6 +403,7 @@ object SETISim {
           message += "Closing db prepared statement\n"
           dashdbSlow.insertDataStatement.close
           dashdbSlow.connection.close
+          objstore.fs.close
         }
         println(s"$status")
 
@@ -517,7 +519,7 @@ object SETISim {
         dashdb.uuid(DS.uuid)
         dashdb.sigN(DS.sigN);
         dashdb.noiseName(noiseGen.getName());
-        dashdb.dPhiRad(DS.dPhiRad);
+        dashdb.dPhi(DS.dPhi);
         dashdb.SNR(DS.SNR);
         dashdb.drift(DS.drift);
         dashdb.driftRateDerivative(DS.driftRateDerivate);
