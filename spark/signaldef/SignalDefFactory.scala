@@ -17,6 +17,21 @@ object SignalDefFactory {
       signalDef.next
       return signalDef
     }
+    case "squarepulsednarrowband" => {
+      val signalDef = new SquarePulsedNarrowBand(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
+    case "squigglesquarepulsednarrowband" => {
+      val signalDef = new SquiggleSquarePulsedNarrowBand(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
+    case "squiggle" => {
+      val signalDef = new Squiggle(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
     case "noise" => {
       val signalDef = new PureNoise(rand,dataClass)
       signalDef.next
