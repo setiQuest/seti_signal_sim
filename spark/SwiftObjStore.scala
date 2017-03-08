@@ -9,22 +9,14 @@ import org.apache.hadoop.fs.Path;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Properties
+//import java.util.Properties
 
 import org.apache.hadoop.conf.Configuration
 
 import scala.collection.Map
 
-class SwiftObjStore (val creds: Properties, val configurationName: String) {
+class SwiftObjStore (val mConf: Configuration, val configurationName: String) {
   
-  var mConf: Configuration = new Configuration(true)
-  mConf.set("fs.swift2d.impl","com.ibm.stocator.fs.ObjectStoreFileSystem");
-  mConf.set(s"fs.swift2d.service.$configurationName.auth.url", creds.getProperty("auth_url") + "/auth/tokens");
-  mConf.set(s"fs.swift2d.service.$configurationName.public", "true");
-  mConf.set(s"fs.swift2d.service.$configurationName.tenant", creds.getProperty("project_id"));
-  mConf.set(s"fs.swift2d.service.$configurationName.password", creds.getProperty("password"));
-  mConf.set(s"fs.swift2d.service.$configurationName.username", creds.getProperty("user_id"));
-  mConf.set(s"fs.swift2d.service.$configurationName.region", creds.getProperty("region"));
 
   var currentContainer:String = _
   var fs:FileSystem = _

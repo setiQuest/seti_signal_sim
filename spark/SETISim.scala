@@ -59,7 +59,7 @@ object SETISim {
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
   var configurationName : String = "setipublic"
-  var dataClass : String = "" //this will either be 'training' or 'test'
+  var dataClass : String = "" //this will either be 'training', 'test', or 'private'
 
 
 
@@ -81,6 +81,13 @@ object SETISim {
 
     val conf = new SparkConf().setAppName("SETI Sim")
     val sc = new SparkContext(conf)
+
+    // sc.hadoopConfiguration.set(s"fs.stocator.MaxPerRoute", "100");
+    // sc.hadoopConfiguration.set(s"fs.stocator.MaxTotal", "1000");
+    // sc.hadoopConfiguration.set(s"fs.stocator.ReqConnectTimeout", "20000");
+    // sc.hadoopConfiguration.set(s"fs.stocator.SoTimeout", "20000");
+    // sc.hadoopConfiguration.set(s"fs.stocator.ReqConnectionRequestTimeout", "20000");
+    // sc.hadoopConfiguration.set(s"fs.stocator.ReqSocketTimeout", "20000");
 
     val initSeed: Long = System.currentTimeMillis()*nSim*numPartitions
 
@@ -207,10 +214,27 @@ object SETISim {
     println("Starting simulations... ")
 
     
+
     var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
       var seed:Long = initSeed + indx
       var randGen = new Random(seed)
 
+      var mConf: Configuration = new Configuration(true)
+      mConf.set("fs.swift2d.impl","com.ibm.stocator.fs.ObjectStoreFileSystem");
+      mConf.set(s"fs.swift2d.service.$configurationName.auth.url", props.getProperty("auth_url") + "/auth/tokens");
+      mConf.set(s"fs.swift2d.service.$configurationName.public", "true");
+      mConf.set(s"fs.swift2d.service.$configurationName.tenant", props.getProperty("project_id"));
+      mConf.set(s"fs.swift2d.service.$configurationName.password", props.getProperty("password"));
+      mConf.set(s"fs.swift2d.service.$configurationName.username", props.getProperty("user_id"));
+      mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
+      mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
+
+      mConf.set(s"fs.stocator.MaxPerRoute", "200");
+      mConf.set(s"fs.stocator.MaxTotal", "1000");
+      mConf.set(s"fs.stocator.SoTimeout", "10000");
+      mConf.set(s"fs.stocator.ReqConnectTimeout", "10000");
+      mConf.set(s"fs.stocator.ReqConnectionRequestTimeout", "10000");
+      mConf.set(s"fs.stocator.ReqSocketTimeout", "10000");
 
       iter.map(i => {
           
@@ -218,7 +242,8 @@ object SETISim {
         // each row, i, is a tuple: (int, noisename, "", "") or (int, container, objectname, uuid)
         //
 
-        val objstore: SwiftObjStore = new SwiftObjStore(props, configurationName)
+
+        val objstore: SwiftObjStore = new SwiftObjStore(mConf,configurationName)
         //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
         val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
 
@@ -291,7 +316,7 @@ object SETISim {
           dashdbSlow.uuid(DS.uuid)
           dashdbSlow.sigN(DS.sigN);
           dashdbSlow.noiseName(noiseGen.getName());
-          dashdbSlow.dPhi(DS.dPhi);
+          dashdbSlow.dPhiRad(DS.dPhiRad);
           dashdbSlow.SNR(DS.SNR);
           dashdbSlow.drift(DS.drift);
           dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
@@ -492,7 +517,7 @@ object SETISim {
         dashdb.uuid(DS.uuid)
         dashdb.sigN(DS.sigN);
         dashdb.noiseName(noiseGen.getName());
-        dashdb.dPhi(DS.dPhi);
+        dashdb.dPhiRad(DS.dPhiRad);
         dashdb.SNR(DS.SNR);
         dashdb.drift(DS.drift);
         dashdb.driftRateDerivative(DS.driftRateDerivate);
