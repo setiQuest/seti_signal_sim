@@ -10,9 +10,9 @@ public class NoiseGenerator
     return 0.0;
   }
 
-  public void setName(String name) 
+  public void setName(String aName) 
   {
-    name = name;
+    name = aName;
   }
   public String getName() 
   {
