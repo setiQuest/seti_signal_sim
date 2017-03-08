@@ -31,6 +31,7 @@ public class DataSimulator
 	public NoiseGenerator noiseGen = null;
 	public double sigN = 0;
 	public double dPhi = 0;
+  public double dPhiRad = 0;
 	public double SNR = 0; 
 	public double drift = 0;
 	public double driftRateDerivate = 0;
@@ -71,7 +72,7 @@ public class DataSimulator
 		int nextarg = 0;
 		double sigmaN = Double.parseDouble(args[nextarg++]);
 		String noiseFile = args[nextarg++];
-		double deltaPhiRad = Double.parseDouble(args[nextarg++]) / 180.0 * Math.PI;
+		double deltaPhiDeg = Double.parseDouble(args[nextarg++])
 		double SNR = Double.parseDouble(args[nextarg++]);
 		double drift = Double.parseDouble(args[nextarg++]);
 		double driftRateDerivate = Double.parseDouble(args[nextarg++]);
@@ -93,7 +94,7 @@ public class DataSimulator
 		System.out.println("args:\n" 
 			+ "sigmaN = " + sigmaN + "\n"
 			+ "noiseFile = " + noiseFile + "\n"
-			+ "deltaPhiRad = " + deltaPhiRad + "\n"
+			+ "deltaPhiDeg = " + deltaPhiDeg + "\n"
 			+ "SNR = " + SNR + "\n"
 			+ "drift = " + drift + "\n"
 			+ "driftRateDerivate = " + driftRateDerivate + "\n"
@@ -125,7 +126,7 @@ public class DataSimulator
 
 		// create simulator
 		DataSimulator mySimulator = new DataSimulator(
-			noiseGen, sigmaN, deltaPhiRad, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, signalClass, seed, randGen, auuid);
+			noiseGen, sigmaN, deltaPhiDeg, SNR, drift, driftRateDerivate, sigmaSquiggle, outputLength, ampModType, ampModPeriod, ampModDuty, signalClass, seed, randGen, auuid);
  
  		//we insert the private and public headers into the output data file. 
 		ObjectMapper mapper = new ObjectMapper();
@@ -157,6 +158,7 @@ public class DataSimulator
 		noiseGen = anoiseGen;
 		sigN = asigN;
 		dPhi = adPhi;
+    dPhiRad = dPhi / 180.0 * Math.PI;
 		SNR = aSNR; 
 		drift = adrift;
 		driftRateDerivate = adriftRateDerivate;
@@ -188,10 +190,10 @@ public class DataSimulator
 		if (Math.abs(sinDrift) > 1) sinDrift = Math.signum(sinDrift);
 		cosDrift = Math.sqrt(1 - sinDrift * sinDrift);
 
-		// dPhi is average phase angle (radians) between complex-valued samples
+		// dPhiRad is average phase angle (radians) between complex-valued samples
 		// pi radians -> Nyquist frequency
-		cosPhi = Math.cos(dPhi);
-		sinPhi = Math.sin(dPhi);
+		cosPhi = Math.cos(dPhiRad);
+		sinPhi = Math.sin(dPhiRad);
 
 		// keeps track of signal and sample values from most recent data point
 		signalX = rand.nextGaussian();
@@ -235,7 +237,7 @@ public class DataSimulator
 		privateHeader = new HashMap<String, Object>();
 		privateHeader.put("sigma_noise", sigN);
 		privateHeader.put("noise_name", noiseGen.getName());
-		privateHeader.put("delta_phi_rad", dPhi);
+		privateHeader.put("delta_phi_rad", dPhiRad);
 		privateHeader.put("signal_to_noise_ratio", SNR);
 		privateHeader.put("drift",drift);
 		privateHeader.put("drift_rate_derivative",driftRateDerivate);
@@ -385,7 +387,7 @@ public class DataSimulator
       prevSinSign = sinPhi > 0;
       //prevCosPhi = cosPhi;
       //prevSinPhi = sinPhi;
-      
+
 			// if (i < 10) {
 			// 	if (i == 0) { 
 			// 		System.out.println("Printing out the first 10 samples");
@@ -407,7 +409,7 @@ public class DataSimulator
 			+ "\twhere\n\n"
 			+ "\t  sigmaNoise\t (double 0 - 127) noise mean power, 13 is good choice\n"
 			+ "\t  noiseFile\t (string) path to noise file\n"
-			+ "\t  deltaPhi\t(double -180 - 180) average phase angle (degrees) between samples\n"
+			+ "\t  deltaPhiDeg\t(double -180 - 180) average phase angle (degrees) between samples\n"
 			+ "\t  SNR\t(double) Signal amplitude in terms of sigma_noise\n"
 			+ "\t  drift\t(double) Average drift rate of signal\n"
 			+ "\t  driftRateDerivate\t(double) Change of drift rate per 1m samples\n"

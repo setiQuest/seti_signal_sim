@@ -67,8 +67,8 @@ class DashDB (jdbc_url: String, user: String, pass: String, databasename: String
     insertDataStatement.setString(3, noiseName);
   }
   
-  def dPhi(dPhi: Double) {
-    insertDataStatement.setDouble(4, dPhi);
+  def dPhiRad(dPhiRad: Double) {
+    insertDataStatement.setDouble(4, dPhiRad);
   }
   
   def SNR(SNR: Double) {
