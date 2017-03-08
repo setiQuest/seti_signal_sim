@@ -15,3 +15,7 @@ JDBC_URL=jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001
 
 DASHDBPASS=
 DASHDBUSER=
+databasename=setiusers.simsignal
+training_data_container=simsignals
+test_data_container=simsignals_test
+private_data_container=simsignals_private

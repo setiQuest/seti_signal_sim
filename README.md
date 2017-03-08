@@ -11,6 +11,9 @@ Find links to install SBT on Mac, Linux and Windows here: http://www.scala-sbt.o
 This one command will download the dependecies, compile the code and package it into an
 uber jar file. 
 
+However, before you do, you should create the file `resources/simulation.properties`. There is a `.template` file
+in the `resources` folder, which will tell you which fields you need to create.
+
 ```
 sbt assembly
 ```
