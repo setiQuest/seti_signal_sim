@@ -72,7 +72,7 @@ public class DataSimulator
 		int nextarg = 0;
 		double sigmaN = Double.parseDouble(args[nextarg++]);
 		String noiseFile = args[nextarg++];
-		double deltaPhiDeg = Double.parseDouble(args[nextarg++])
+		double deltaPhiDeg = Double.parseDouble(args[nextarg++]);
 		double SNR = Double.parseDouble(args[nextarg++]);
 		double drift = Double.parseDouble(args[nextarg++]);
 		double driftRateDerivate = Double.parseDouble(args[nextarg++]);
