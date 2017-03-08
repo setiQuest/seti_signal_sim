@@ -9,3 +9,4 @@ target/
 resources/simulation.properties
 *.DS_Store
 *.dat
+*.pyc
