@@ -14,6 +14,10 @@ private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,d
 
     sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
 
+    //for high-amplitude only simulations (BASIC4)
+    //SNR = nextDoubleFromRange(0.1, 0.3)
+    //drift = nextDoubleFromRange(-0.002, 0.002)
+
     //random chance for pure noise
     //keep this number a secret!!
     if(dataClass == "test") {
