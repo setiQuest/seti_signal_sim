@@ -6,7 +6,7 @@ public class GaussianNoise extends NoiseGenerator
   private Random rand = null;
 
   public GaussianNoise(Random aRand) {
-    this.setName("gaussian_noise_generator");
+    this.setName("gaussian");
     rand = aRand;
   }
 

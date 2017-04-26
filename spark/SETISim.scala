@@ -197,7 +197,7 @@ object SETISim {
       }
       
       if (counter != nSim ) {
-        throw MissingSunNoise(s"Only found $counter noise files, expected $nSim")
+        throw MissingSunNoise(s"Found $counter noise files, expected $nSim")
       }
 
     }
@@ -211,9 +211,8 @@ object SETISim {
     var rdd = sc.parallelize(noiseArray, numPartitions)
  
 
-    println("Starting simulations... ")
-
-    
+    var count = rdd.count
+    println(s"Starting $count simulations... ")
 
     var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
       var seed:Long = initSeed + indx
@@ -230,13 +229,14 @@ object SETISim {
       mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
 
       var nSimDivFive = nSim/5
-      mConf.set(s"fs.stocator.MaxPerRoute", nSimDivFive.toString)
-      mConf.set(s"fs.stocator.MaxTotal", nSim.toString)
+      var nSimTimesTwo = 2*nSim
+      mConf.set(s"fs.stocator.MaxPerRoute", nSim.toString)
+      mConf.set(s"fs.stocator.MaxTotal", nSimTimesTwo.toString)
       mConf.set(s"fs.stocator.SoTimeout", "10000")
       mConf.set(s"fs.stocator.ReqConnectTimeout", "10000")
       mConf.set(s"fs.stocator.ReqConnectionRequestTimeout", "10000")
       mConf.set(s"fs.stocator.ReqSocketTimeout", "10000")
-
+      
       iter.map(i => {
           
         //
@@ -244,13 +244,18 @@ object SETISim {
         //
 
 
+
         val objstore: SwiftObjStore = new SwiftObjStore(mConf,configurationName)
         //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
         val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
 
         var uuid:String = UUID.randomUUID().toString()
-      
+        var status = "success"
+
         var message = s"starting simulation $seed for $uuid\n"
+        var outputFileName = s"$uuid.dat"
+
+        message += s"$outputFileName\n"
 
         var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
 
@@ -265,149 +270,159 @@ object SETISim {
             noiseGen.setAmp(1.0)
           }
           else {
-            noiseGen = new SunNoise(i._2, i._3, objstore) 
-            noiseGen.setAmp(1.0)
+              // noiseGen = new SunNoise(i._2, i._3, objstore) 
+              // noiseGen.setAmp(1.0)
+            try{
+              noiseGen = new SunNoise(i._2, i._3, objstore) 
+              noiseGen.setAmp(1.0)
+            } catch {
+              case e : Throwable => { 
+                status = "failed"
+                message += "row: " + i.toString + "\n"
+                message += "SunNoise exception\n"
+                message += s"${e.getMessage}\n"
+              }
+            }
           }
         }
 
-        //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
+        if (status == "success") {
+          //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
-        var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
-          sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
-          sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
+          var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
+            sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
+            sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
 
-        var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+          var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
 
-        //only add the public header to output byte stream.
-        var mapper = new ObjectMapper();
-        var json = mapper.writeValueAsString(DS.publicHeader);
-        System.out.println(json);
-        dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
-        dataOutputByteStream.write('\n');
+          //only add the public header to output byte stream.
+          var mapper = new ObjectMapper();
+          var json = mapper.writeValueAsString(DS.publicHeader);
+          System.out.println(json);
+          dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
+          dataOutputByteStream.write('\n');
 
-        DS.run(dataOutputByteStream)
+          DS.run(dataOutputByteStream)
 
-        noiseGen.close();
+          noiseGen.close();
 
-        val digest:MessageDigest = MessageDigest.getInstance("MD5");
-        var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
-        var localEtag = HexBytesUtil.bytes2hex(hashBytes)
-      
-        //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
+          val digest:MessageDigest = MessageDigest.getInstance("MD5");
+          var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
+          var localEtag = HexBytesUtil.bytes2hex(hashBytes)
         
-        var status = "success"
+          //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
+          
+          
+          message += "Starting database transfer\n"
 
-        var outputFileName = s"$uuid.dat"
-
-        message += s"$outputFileName\n"
-        message += "Starting database transfer\n"
-
-        try {
-          noiseGen match {
-            case m:SunNoise => {
-              dashdbSlow.update_sun_noise_usage(i._4, true)
-              dashdbSlow.noise_file_uuid(i._4)
+          try {
+            noiseGen match {
+              case m:SunNoise => {
+                dashdbSlow.update_sun_noise_usage(i._4, true)
+                dashdbSlow.noise_file_uuid(i._4)
+              }
+              case _ => {
+                dashdbSlow.noise_file_uuid("")
+              }
             }
-            case _ => {
-              dashdbSlow.noise_file_uuid("")
-            }
+
+            
+            dashdbSlow.uuid(DS.uuid)
+            dashdbSlow.sigN(DS.sigN);
+            dashdbSlow.noiseName(noiseGen.getName());
+            dashdbSlow.dPhi(DS.dPhi);
+            dashdbSlow.SNR(DS.SNR);
+            dashdbSlow.drift(DS.drift);
+            dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
+            dashdbSlow.jitter(DS.jitter);
+            dashdbSlow.len(DS.len);
+            dashdbSlow.ampModType(DS.ampModType);
+            dashdbSlow.ampModPeriod(DS.ampModPeriod);
+            dashdbSlow.ampModDuty(DS.ampModDuty);
+            dashdbSlow.ampPhase(DS.ampPhase);
+            dashdbSlow.ampPhaseSquare(DS.ampPhaseSquare);
+            dashdbSlow.ampPhaseSine(DS.ampPhaseSine);
+            dashdbSlow.signalClass(DS.signalClass);
+            dashdbSlow.seed(DS.seed);
+            dashdbSlow.mDriftDivisor(DS.mDriftDivisor);
+            dashdbSlow.sinDrift(DS.sinDrift);
+            dashdbSlow.cosDrift(DS.cosDrift);
+            dashdbSlow.simulationVersion(DS.simulationVersion);
+            dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
+
+            dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
+            dashdbSlow.container(simulatedSignalContainer);
+            dashdbSlow.outputFileName(outputFileName);
+            dashdbSlow.etag(localEtag);
+
+            message += s"PUT to object store $simulatedSignalContainer, $outputFileName\n"
+
+
+            objstore.put(simulatedSignalContainer, outputFileName, dataOutputByteStream.toByteArray)
+            
+            
+            // if(returnedEtag != localEtag {
+            //   throw MisMatchDigest(s"$etag != $localEtag")
+            // }
+            // else {
+            //   println("MD5 match okay")
+            //   println("checksum algorith: " + fschecksum.getAlgorithmName)
+            // }
+
+            //update database
+            message += s"INSERT to dashDB. etag: $localEtag\n"
+
+            dashdbSlow.insertDataStatement.executeUpdate
+
+          } catch {
+              // ... code to handle exceptions
+              // if DB connection exception, don't push data file to Object Storage. 
+              //Need to print out info for logs. 
+              case e : SQLException => {
+                printException(e)
+                message += s"SQLException\n"
+                message += s"${e.getMessage}\n"
+                status = "failed"
+                try {
+                  println("Transaction is being rolled back");
+                  dashdbSlow.connection.rollback;
+                  objstore.delete(simulatedSignalContainer, outputFileName);  
+                } catch {
+                  case ee : Throwable => {
+                    ee.printStackTrace
+                    message += s"Rollback/Delete Exception\n"
+                    message += s"${ee.getMessage}\n"
+                  }
+                }
+              }
+              case e : Throwable => {
+                e.printStackTrace
+                status = "failed"
+                message += s"General Exception\n"
+                message += s"${e.getMessage}\n"
+                try {
+                  println("Transaction is being rolled back");
+                  dashdbSlow.connection.rollback
+                  objstore.delete(simulatedSignalContainer, outputFileName);
+                } catch {
+                  case ee : Throwable => {
+                    ee.printStackTrace
+                    message += s"Rollback/Delete Exception\n"
+                    message += s"${ee.getMessage}\n"
+                  }
+                }
+              }
+          }  finally {
+            message += "Closing db prepared statement\n"
+            dashdbSlow.insertDataStatement.close
+            dashdbSlow.connection.close
+            objstore.fs.close
           }
-
-          
-          dashdbSlow.uuid(DS.uuid)
-          dashdbSlow.sigN(DS.sigN);
-          dashdbSlow.noiseName(noiseGen.getName());
-          dashdbSlow.dPhi(DS.dPhi);
-          dashdbSlow.SNR(DS.SNR);
-          dashdbSlow.drift(DS.drift);
-          dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
-          dashdbSlow.jitter(DS.jitter);
-          dashdbSlow.len(DS.len);
-          dashdbSlow.ampModType(DS.ampModType);
-          dashdbSlow.ampModPeriod(DS.ampModPeriod);
-          dashdbSlow.ampModDuty(DS.ampModDuty);
-          dashdbSlow.ampPhase(DS.ampPhase);
-          dashdbSlow.ampPhaseSquare(DS.ampPhaseSquare);
-          dashdbSlow.ampPhaseSine(DS.ampPhaseSine);
-          dashdbSlow.signalClass(DS.signalClass);
-          dashdbSlow.seed(DS.seed);
-          dashdbSlow.mDriftDivisor(DS.mDriftDivisor);
-          dashdbSlow.sinDrift(DS.sinDrift);
-          dashdbSlow.cosDrift(DS.cosDrift);
-          dashdbSlow.simulationVersion(DS.simulationVersion);
-          dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
-
-          dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
-          dashdbSlow.container(simulatedSignalContainer);
-          dashdbSlow.outputFileName(outputFileName);
-          dashdbSlow.etag(localEtag);
-
-          message += s"PUT to object store $simulatedSignalContainer, $outputFileName\n"
-
-
-          objstore.put(simulatedSignalContainer, outputFileName, dataOutputByteStream.toByteArray)
-          
-          
-          // if(returnedEtag != localEtag {
-          //   throw MisMatchDigest(s"$etag != $localEtag")
-          // }
-          // else {
-          //   println("MD5 match okay")
-          //   println("checksum algorith: " + fschecksum.getAlgorithmName)
-          // }
-
-          //update database
-          message += s"INSERT to dashDB. etag: $localEtag\n"
-
-          dashdbSlow.insertDataStatement.executeUpdate
-
-        } catch {
-            // ... code to handle exceptions
-            // if DB connection exception, don't push data file to Object Storage. 
-            //Need to print out info for logs. 
-            case e : SQLException => {
-              printException(e)
-              message += s"SQLException\n"
-              message += s"${e.getMessage}\n"
-              status = "failed"
-              try {
-                println("Transaction is being rolled back");
-                dashdbSlow.connection.rollback;
-                objstore.delete(simulatedSignalContainer, outputFileName);  
-              } catch {
-                case ee : Throwable => {
-                  ee.printStackTrace
-                  message += s"Rollback/Delete Exception\n"
-                  message += s"${ee.getMessage}\n"
-                }
-              }
-            }
-            case e : Throwable => {
-              e.printStackTrace
-              status = "failed"
-              message += s"General Exception\n"
-              message += s"${e.getMessage}\n"
-              try {
-                println("Transaction is being rolled back");
-                dashdbSlow.connection.rollback
-                objstore.delete(simulatedSignalContainer, outputFileName);
-              } catch {
-                case ee : Throwable => {
-                  ee.printStackTrace
-                  message += s"Rollback/Delete Exception\n"
-                  message += s"${ee.getMessage}\n"
-                }
-              }
-            }
-        }  finally {
-          message += "Closing db prepared statement\n"
-          dashdbSlow.insertDataStatement.close
-          dashdbSlow.connection.close
-          objstore.fs.close
         }
+        
         println(s"$status")
 
-        (seed, uuid, status, message, outputFileName)
+        (seed, uuid, status, message, outputFileName, i._2)
 
       })  
 
@@ -424,6 +439,11 @@ object SETISim {
 
     println("Returned: " + results.length + " simulations out of " + nSim + " requested of type " +  paramGenName)
     //results.foreach(i => {println(i._4)})
+
+    println("Number of simulations by noise type.")
+    //var noiseTypes = results.map(i => i._6)
+    println(results.map(i => i._6).groupBy(identity).mapValues(_.size))
+
 
     var success = results.filter(i => {i._3 == "success"})
     println("Successful: " + success.length + " simulations out of " + nSim + " requested of type " +  paramGenName)

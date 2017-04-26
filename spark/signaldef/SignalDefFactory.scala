@@ -32,6 +32,21 @@ object SignalDefFactory {
       signalDef.next
       return signalDef
     }
+    case "narrowbanddrd" => {
+      val signalDef = new NarrowBandDRD(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
+    case "squigglesquarepulsednarrowbanddrd" => {
+      val signalDef = new NarrowBandDRD(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
+    case "brightpixel" => {
+      val signalDef = new BrightPixel(rand,dataClass)
+      signalDef.next
+      return signalDef
+    }
     case "noise" => {
       val signalDef = new PureNoise(rand,dataClass)
       signalDef.next

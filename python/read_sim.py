@@ -6,6 +6,17 @@ plt.ion()
 
 fig, ax = plt.subplots()
 
+def get_spectrogram_data(data, shape=(129,6144)):
+
+    header, simdata = data.split('\n',1)
+
+    complex_data = np.frombuffer(simdata, dtype='i1').astype(np.float32).view(np.complex64)
+    #complex_data = np.fromfile(ff, dtype='i1').astype(np.float32).view(np.complex64)
+    complex_data = complex_data.reshape(*shape)
+    cpfft = np.fft.fftshift( np.fft.fft(complex_data), 1)
+    spectrogram = np.abs(cpfft)**2
+    return spectrogram
+
 def get_spectrogram(filename, shape=(129,6144), skip_lines = 1):
     ff = open(filename,'rb')
 

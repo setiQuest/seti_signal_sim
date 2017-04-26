@@ -7,7 +7,7 @@ class SunNoise(container: String, objectname: String, objstore: SwiftObjStore) e
   var index: Int = 0
   var vals = objstore.get(container, objectname)
   
-  setName(container + "/" + objectname)
+  setName("sunnoise")
 
   override def next() : Double = {
     index += 1

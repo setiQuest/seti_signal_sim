@@ -71,13 +71,13 @@ property values is in the repository. You should `cp resoureces/simulation.prope
 ##### Example
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 8 narrowband gaussian
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 2 8 narrowband gaussian
 ```
 
 or
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 8 4 narrowband gaussian
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 2 8 narrowband gaussian
 ```
 
 ```
@@ -86,7 +86,13 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 100
 
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 10000 narrowband sunnnoise
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 1000 narrowband sunnnoise
+```
+
+#### Submitting to IBM Spark Cluster
+
+```
+./spark-submit.sh --vcap vcap.enterprise.json --deploy-mode cluster --conf spark.service.spark_version=2.0 --class org.seti.simulator.SETISim target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 20 1000 narrowband gaussian
 ```
 
 

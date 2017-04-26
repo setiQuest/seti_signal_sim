@@ -2,9 +2,11 @@ package org.seti.simulator.signaldef
 
 import java.util.Random;
 
-private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
+private class BrightPixel(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
 
-  signalClass = "squiggle"
+  signalClass = "brightpixel"
+  ampModType = "square"
+  ampModPeriod = 129*6144
 
   def next {
 
@@ -12,12 +14,12 @@ private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,d
     SNR = nextDoubleFromRange(0.003, 0.3) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
 
-    sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
+    ampModDuty = nextDoubleFromRange(0.05/129.0, 1.0/129.0)
 
     //random chance for pure noise
     //keep this number a secret!!
     if(dataClass == "test") {
-      if (rand.nextDouble > 0.11) {
+      if (rand.nextDouble > 0.08) {
         SNR = 0.0
       }
     }
