@@ -17,12 +17,11 @@ private class SquiggleSquarePulsedNarrowBandDRD(rand: Random, dataClass: String)
     ampModPeriod = nextDoubleFromRange(5*6144, 50*6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)
     
+    driftRateDerivate = nextDoubleFromRange(0.0001, 0.01)
     if (rand.nextDouble > 0.5) {
-      driftRateDerivate = nextDoubleFromRange(-0.01, -0.0001)
+      driftRateDerivate = -1.0*driftRateDerivate
     }
-    else {
-      driftRateDerivate = nextDoubleFromRange(0.0001, 0.01)
-    }
+    
     
     //random chance for pure noise
     //keep this number a secret!!

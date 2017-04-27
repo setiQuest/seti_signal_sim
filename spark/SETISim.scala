@@ -59,7 +59,7 @@ object SETISim {
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
   var configurationName : String = "setipublic"
-  var dataClass : String = "" //this will either be 'training', 'test', or 'private'
+  var dataClass : String = "" //this will either be 'training', 'test', 'basic', or 'private'
 
 
 
@@ -151,6 +151,9 @@ object SETISim {
       case "test" => {
         simulatedSignalContainer = props.getProperty("test_data_container")
       }
+      case "basic" => {
+        simulatedSignalContainer = props.getProperty("basic_data_container")
+      }
       case "training" => {
         simulatedSignalContainer = props.getProperty("training_data_container")
       }
@@ -158,7 +161,7 @@ object SETISim {
         simulatedSignalContainer = props.getProperty("private_data_container")
       }
       case _ => {
-        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
+        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic' or 'private'.")
         return
       }
     }
@@ -467,6 +470,9 @@ object SETISim {
       case "test" => {
         simulatedSignalContainer = props.getProperty("test_data_container")
       }
+      case "basic" => {
+        simulatedSignalContainer = props.getProperty("basic_data_container")
+      }
       case "training" => {
         simulatedSignalContainer = props.getProperty("training_data_container")
       }
@@ -474,7 +480,7 @@ object SETISim {
         simulatedSignalContainer = props.getProperty("private_data_container")
       }
       case _ => {
-        println("Incorrect data class ($dataClass). Choose either 'test' or 'training'.")
+        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic' or 'private'..")
         return
       }
     }

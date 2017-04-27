@@ -24,8 +24,8 @@ public class DataSimulator
 	public double mDriftDivisor = 1024;
 
 
-	public int simulationVersion = 9;
-	public String simulationVersionDate = "8 Mar 2017";
+	public int simulationVersion = 10;
+	public String simulationVersionDate = "27 Apr 2017";
 	
 	public Random rand = null;
 	public NoiseGenerator noiseGen = null;

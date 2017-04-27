@@ -9,12 +9,16 @@ private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand
   def next {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.003, 0.3) 
-    drift = nextDoubleFromRange(-0.0075, 0.0075) 
 
-    //for high-amplitude only simulations (BASIC4)
-    //SNR = nextDoubleFromRange(0.1, 0.3)
-    //drift = nextDoubleFromRange(-0.002, 0.002)
+    if (dataClass == "basic"){
+      SNR = nextDoubleFromRange(0.1, 0.3)
+      drift = nextDoubleFromRange(-0.002, 0.002)
+    }
+    else {
+      SNR = nextDoubleFromRange(0.003, 0.3) 
+      drift = nextDoubleFromRange(-0.0075, 0.0075) 
+    }
+        
 
     //random chance for pure noise
     //keep this number a secret!!
