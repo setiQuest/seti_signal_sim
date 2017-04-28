@@ -5,7 +5,7 @@ import java.util.Random;
 abstract class SignalDef (val rand: Random, val dataClass: String)  {
 
   //default values
-  var sigmaN: Double = 13 
+  var sigmaN: Double = 13.0
   var deltaPhiRad: Double = 0.0
   var SNR: Double = 0.0
   var drift: Double = 0.0

@@ -20,7 +20,7 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String) ex
     //random chance for pure noise
     //keep this number a secret!!
     if(dataClass == "test") {
-      if (rand.nextDouble > 0.074) {
+      if (rand.nextDouble > 0.13) {
         SNR = 0.0
       }
     }

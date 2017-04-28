@@ -11,7 +11,7 @@ private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
 
     if (dataClass == "basic"){
-      SNR = nextDoubleFromRange(0.3, 0.5)
+      SNR = nextDoubleFromRange(0.1, 0.3)
       drift = nextDoubleFromRange(-0.002, 0.002)
     }
     else {
@@ -23,7 +23,7 @@ private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand
     //random chance for pure noise
     //keep this number a secret!!
     if(dataClass == "test") {
-      if (rand.nextDouble > 0.08) {
+      if (rand.nextDouble > 0.12) {
         SNR = 0.0
       }
     }
