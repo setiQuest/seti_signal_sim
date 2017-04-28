@@ -460,7 +460,7 @@ object SETISim {
     sc.stop()
   }
 
-  def serialSim(nSim: Int, paramGenName: String, noiseName: String) {
+  def serialSim(nSim: Int, paramGenName: String, noiseName: String, local: Boolean) {
 
     val props = new Properties
     var simulatedSignalContainer : String = ""
@@ -540,35 +540,36 @@ object SETISim {
         //     dashdb.noise_file_uuid("")
         //   }
         // }
-        dashdb.noise_file_uuid("")
-        
-        dashdb.uuid(DS.uuid)
-        dashdb.sigN(DS.sigN);
-        dashdb.noiseName(noiseGen.getName());
-        dashdb.dPhi(DS.dPhi);
-        dashdb.SNR(DS.SNR);
-        dashdb.drift(DS.drift);
-        dashdb.driftRateDerivative(DS.driftRateDerivate);
-        dashdb.jitter(DS.jitter);
-        dashdb.len(DS.len);
-        dashdb.ampModType(DS.ampModType);
-        dashdb.ampModPeriod(DS.ampModPeriod);
-        dashdb.ampModDuty(DS.ampModDuty);
-        dashdb.ampPhase(DS.ampPhase);
-        dashdb.ampPhaseSquare(DS.ampPhaseSquare);
-        dashdb.ampPhaseSine(DS.ampPhaseSine);
-        dashdb.signalClass(DS.signalClass);
-        dashdb.seed(DS.seed);
-        dashdb.mDriftDivisor(DS.mDriftDivisor);
-        dashdb.sinDrift(DS.sinDrift);
-        dashdb.cosDrift(DS.cosDrift);
-        dashdb.simulationVersion(DS.simulationVersion);
-        dashdb.simulationVersionDate(DS.simulationVersionDate);
+        if (!local) {
+          dashdb.noise_file_uuid("")
+          
+          dashdb.uuid(DS.uuid)
+          dashdb.sigN(DS.sigN);
+          dashdb.noiseName(noiseGen.getName());
+          dashdb.dPhi(DS.dPhi);
+          dashdb.SNR(DS.SNR);
+          dashdb.drift(DS.drift);
+          dashdb.driftRateDerivative(DS.driftRateDerivate);
+          dashdb.jitter(DS.jitter);
+          dashdb.len(DS.len);
+          dashdb.ampModType(DS.ampModType);
+          dashdb.ampModPeriod(DS.ampModPeriod);
+          dashdb.ampModDuty(DS.ampModDuty);
+          dashdb.ampPhase(DS.ampPhase);
+          dashdb.ampPhaseSquare(DS.ampPhaseSquare);
+          dashdb.ampPhaseSine(DS.ampPhaseSine);
+          dashdb.signalClass(DS.signalClass);
+          dashdb.seed(DS.seed);
+          dashdb.mDriftDivisor(DS.mDriftDivisor);
+          dashdb.sinDrift(DS.sinDrift);
+          dashdb.cosDrift(DS.cosDrift);
+          dashdb.simulationVersion(DS.simulationVersion);
+          dashdb.simulationVersionDate(DS.simulationVersionDate);
 
-        dashdb.time(new Timestamp(System.currentTimeMillis()));
-        dashdb.container(simulatedSignalContainer);
-        dashdb.outputFileName(outputFileName);
-
+          dashdb.time(new Timestamp(System.currentTimeMillis()));
+          dashdb.container(simulatedSignalContainer);
+          dashdb.outputFileName(outputFileName);
+        } 
 
         DS.run(dataOutputByteStream)
 
@@ -592,16 +593,23 @@ object SETISim {
 
         //upload output file
         var dataBytes = dataOutputByteStream.toByteArray();
-
-        var etag = objstore.put(simulatedSignalContainer, outputFileName, dataBytes)
-
-
-        //calculate local md5
+         //calculate local md5
         val digest:MessageDigest = MessageDigest.getInstance("MD5");
         var hashBytes = digest.digest(dataBytes);
         var localEtag = HexBytesUtil.bytes2hex(hashBytes)
-        
-        dashdb.etag(localEtag);
+
+        var etag : String = localEtag
+
+        if (!local) {
+          var etag = objstore.put(simulatedSignalContainer, outputFileName, dataBytes)
+        }
+        else {
+          val FOS: FileOutputStream  = new FileOutputStream(new File(outputFileName));
+          FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
+          FOS.write('\n');
+          FOS.write(dataBytes);  //this includes the public header already
+          FOS.close();
+        }
 
         if(etag != localEtag) {
           throw MisMatchDigest(s"$etag != $localEtag")
@@ -611,8 +619,11 @@ object SETISim {
         }
 
         //update database
-        dashdb.insertDataStatement.executeUpdate
-        
+        if (!local) {
+          dashdb.etag(localEtag);
+          dashdb.insertDataStatement.executeUpdate
+        }
+
         //close noise generator
         noiseGen.close();
         
@@ -628,9 +639,9 @@ object SETISim {
             printException(e)
 
             try {
-              println("Transaction is being rolled back");
-              dashdb.connection.rollback;
+              println("SQLException: Transaction is being rolled back");
               objstore.delete(simulatedSignalContainer, outputFileName)
+              dashdb.connection.rollback;
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -639,9 +650,11 @@ object SETISim {
             e.printStackTrace
 
             try {
-              println("Transaction is being rolled back");
-              dashdb.connection.rollback
-              objstore.delete(simulatedSignalContainer, outputFileName)
+              println("Other Throwable: Transaction is being rolled back");
+              if(!local){
+                dashdb.connection.rollback
+                objstore.delete(simulatedSignalContainer, outputFileName)
+              }
             } catch {
               case ee : Throwable => ee.printStackTrace
             }
@@ -649,9 +662,10 @@ object SETISim {
       }  
     }
 
-    dashdb.insertDataStatement.close
-    dashdb.connection.close
-
+    if (!local) {
+      dashdb.insertDataStatement.close
+      dashdb.connection.close
+    }
   }
   
   def printException(ex: SQLException)  {
@@ -676,16 +690,23 @@ object SETISim {
 
     val simType:String = args(1)
     
-    if (simType == "spark") {
-      val numPartitions:Int = args(2).toInt
-      val nSims:Int = args(3).toInt
-      val noiseName:String = args(5)
-      sparkSim(numPartitions, nSims, args(4), noiseName)
-    }
-    else {
-      val nSims:Int = args(2).toInt
-      val noiseName:String = args(4)
-      serialSim(nSims, args(3), noiseName)
+    simType match {
+      case "spark" => {
+        val numPartitions:Int = args(2).toInt
+        val nSims:Int = args(3).toInt
+        val noiseName:String = args(5)
+        sparkSim(numPartitions, nSims, args(4), noiseName)
+      }
+      case "serial" => {
+        val nSims:Int = args(2).toInt
+        val noiseName:String = args(4)
+        serialSim(nSims, args(3), noiseName, false)
+      }
+      case "local" => {
+        val nSims:Int = args(2).toInt
+        val noiseName:String = args(4)
+        serialSim(nSims, args(3), noiseName, true)
+      }
     }
 
   }

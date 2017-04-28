@@ -6,6 +6,7 @@ import read_sim
 def main(argv):
    inputfile = ''
    logOpt = False
+   skipLines = 2
    try:
       opts, args = getopt.getopt(argv,"hi:l:",["ifile=","log="])
    except getopt.GetoptError:
@@ -19,11 +20,13 @@ def main(argv):
          inputfile = arg
       elif opt in ("-l", "--log"):
          logOpt = arg
+      elif opt in ("-s", "--skip"):
+         skipLines = arg
    print 'Input file is ', inputfile
    print 'Log option is ', logOpt
 
 
-   read_sim.read_and_show(inputfile, logOpt)
+   read_sim.read_and_show(inputfile, logOpt, aspect=True, skip_lines = skipLines)
 
    raw_input("type anything to quit")
 
