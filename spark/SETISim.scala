@@ -59,7 +59,7 @@ object SETISim {
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used 
   var configurationName : String = "setipublic"
-  var dataClass : String = "" //this will either be 'training', 'test', 'basic', or 'private'
+  //var dataClass : String = "" //this will either be 'training', 'test', 'basic', or 'private'
 
 
 
@@ -76,7 +76,7 @@ object SETISim {
   // }
 
 
-  def sparkSim(numPartitions: Int, nSim: Int, paramGenName: String, noiseName: String) {
+  def sparkSim(numPartitions: Int, nSim: Int, paramGenName: String, noiseName: String, dataClass: String) {
     //paramGenName is the same as the signal class!
 
     val conf = new SparkConf().setAppName("SETI Sim")
@@ -316,7 +316,7 @@ object SETISim {
           //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool. 
           
           
-          message += "Starting database transfer\n"
+          //message += "Starting database transfer\n"
 
           try {
             noiseGen match {
@@ -358,8 +358,7 @@ object SETISim {
             dashdbSlow.outputFileName(outputFileName);
             dashdbSlow.etag(localEtag);
 
-            message += s"PUT to object store $simulatedSignalContainer, $outputFileName\n"
-
+            message += s"PUT to object store $simulatedSignalContainer, $outputFileName, SNR: ${DS.SNR}, class: ${DS.signalClass}, data_class: $dataClass\n"
 
             objstore.put(simulatedSignalContainer, outputFileName, dataOutputByteStream.toByteArray)
             
@@ -441,7 +440,7 @@ object SETISim {
     
 
     println("Returned: " + results.length + " simulations out of " + nSim + " requested of type " +  paramGenName)
-    //results.foreach(i => {println(i._4)})
+    results.foreach(i => {println(i._4)})
 
     println("Number of simulations by noise type.")
     //var noiseTypes = results.map(i => i._6)
@@ -460,7 +459,7 @@ object SETISim {
     sc.stop()
   }
 
-  def serialSim(nSim: Int, paramGenName: String, noiseName: String, local: Boolean) {
+  def serialSim(nSim: Int, paramGenName: String, noiseName: String, local: Boolean, dataClass: String) {
 
     val props = new Properties
     var simulatedSignalContainer : String = ""
@@ -683,7 +682,7 @@ object SETISim {
 
   def main(args: Array[String]) {
     
-    dataClass = args(0)
+    var dataClass = args(0)
     
     //really, I should move all these args to 'val's for this object,
     //then won't have to pass them in to the functions directly. 
@@ -695,17 +694,17 @@ object SETISim {
         val numPartitions:Int = args(2).toInt
         val nSims:Int = args(3).toInt
         val noiseName:String = args(5)
-        sparkSim(numPartitions, nSims, args(4), noiseName)
+        sparkSim(numPartitions, nSims, args(4), noiseName, dataClass)
       }
       case "serial" => {
         val nSims:Int = args(2).toInt
         val noiseName:String = args(4)
-        serialSim(nSims, args(3), noiseName, false)
+        serialSim(nSims, args(3), noiseName, false, dataClass)
       }
       case "local" => {
         val nSims:Int = args(2).toInt
         val noiseName:String = args(4)
-        serialSim(nSims, args(3), noiseName, true)
+        serialSim(nSims, args(3), noiseName, true, dataClass)
       }
     }
 
