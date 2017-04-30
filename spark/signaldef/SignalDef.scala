@@ -39,5 +39,6 @@ abstract class SignalDef (val rand: Random, val dataClass: String)  {
       "ampModPeriod (only valid if type != none) = " + ampModPeriod + "\n" +
       "ampModDuty (only if type = 'square' or 'brightpixel') = " + ampModDuty + "\n" +
       "signalClass = " + signalClass + "\n"
+      "dataClass = " + dataClass + "\n"
   }
 }
