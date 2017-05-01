@@ -44,7 +44,8 @@ public class DataSimulator
 	public String signalClass = "";
 	public long seed = 0;
 	public Map<String, Object> privateHeader = null;
-	public Map<String, Object> publicHeader  = null;
+	public Map<String, Object> labeledPublicHeader  = null;
+	public Map<String, Object> unlabeledPublicHeader  = null;
 
 	public double sinDrift = 0;
 	public double cosDrift = 0;
@@ -136,9 +137,9 @@ public class DataSimulator
 		FOS.write(mapper.writeValueAsBytes(mySimulator.privateHeader));
 		FOS.write('\n');
 
-		json = mapper.writeValueAsString(mySimulator.publicHeader);
+		json = mapper.writeValueAsString(mySimulator.labeledPublicHeader);
 		System.out.println(json);
-		FOS.write(mapper.writeValueAsBytes(mySimulator.publicHeader));
+		FOS.write(mapper.writeValueAsBytes(mySimulator.labeledPublicHeader));
 		FOS.write('\n');
 
 		//now do the simulation, inserting the data into the FOS
@@ -259,9 +260,12 @@ public class DataSimulator
 		privateHeader.put("uuid", uuid);
 		
 
-		publicHeader = new HashMap<String, Object>();
-		publicHeader.put("signal_classification", signalClass);
-		publicHeader.put("uuid", uuid);
+		labeledPublicHeader = new HashMap<String, Object>();
+		labeledPublicHeader.put("signal_classification", signalClass);
+		labeledPublicHeader.put("uuid", uuid);
+
+		unlabeledPublicHeader = new HashMap<String, Object>();
+		unlabeledPublicHeader.put("uuid", uuid);
 
 
 	}

@@ -89,6 +89,12 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 100
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 1000 narrowband sunnnoise
 ```
 
+
+Note, you can't use sunnoise data with 
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar basic local 10 narrowband gaussian
+```
+
 #### Submitting to IBM Spark Cluster
 
 ```

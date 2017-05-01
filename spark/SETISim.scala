@@ -82,66 +82,8 @@ object SETISim {
     val conf = new SparkConf().setAppName("SETI Sim")
     val sc = new SparkContext(conf)
 
-    // sc.hadoopConfiguration.set(s"fs.stocator.MaxPerRoute", "100");
-    // sc.hadoopConfiguration.set(s"fs.stocator.MaxTotal", "1000");
-    // sc.hadoopConfiguration.set(s"fs.stocator.ReqConnectTimeout", "20000");
-    // sc.hadoopConfiguration.set(s"fs.stocator.SoTimeout", "20000");
-    // sc.hadoopConfiguration.set(s"fs.stocator.ReqConnectionRequestTimeout", "20000");
-    // sc.hadoopConfiguration.set(s"fs.stocator.ReqSocketTimeout", "20000");
-
     val initSeed: Long = System.currentTimeMillis()*nSim*numPartitions
 
-    // var simulationProperties = scala.collection.mutable.HashMap[String, String](
-    //   "auth_url"->"https://identity.open.softlayer.com",
-    //   "project"->sys.env("SWIFT_TENANT"),
-    //   "project_id"->sys.env("SWIFT_TENANT_ID"),
-    //   "region"->"dallas",
-    //   "user_id"->sys.env("SWIFT_API_USER"),
-    //   "domain_id"->sys.env("SWIFT_API_DOMAIN_ID"),
-    //   "domain_name"->sys.env("SWIFT_API_DOMAIN"),
-    //   "password"->sys.env("SWIFT_API_KEY")
-    // )
-
-    
-    //val simulationProperties = new Properties
-    //propfile.load("/simulation.properties")
-    //var cl:ClassLoader = getClass().getClassLoader()
-    //propfile.load(cl.getResourceAsStream("config.properties"))
-    //simulationProperties.load(getClass.getResourceAsStream("/simulation.properties"))
-    //scala.io.Source.fromResource("config.properties")
-
-    // val mapper = new ObjectMapper() with ScalaObjectMapper
-    // mapper.registerModule(DefaultScalaModule)
-    // val simulationProperties = mapper.readValue[Map[String,String]](propfile.toString.replaceAll("=",":"))
-
-
-    // ObjectMapper mapper = new ObjectMapper(); 
-    // File from = new File(getClass.getResourceAsStream("/simulation.properties")); 
-    // TypeReference<HashMap<String,Object>> typeRef 
-    //         = new TypeReference<HashMap<String,Object>>() {};
-
-    // HashMap<String,Object> o = mapper.readValue(from, typeRef); 
-
-    // var simulationProperties = scala.collection.mutable.HashMap[String, String](
-    //   "auth_url"->"https://identity.open.softlayer.com/v3",
-    //   "project"->"object_storage_8d3d095b_43e0_449a_ab52_49f26a243623",
-    //   "project_id"->"cdbef52bdf7a449c96936e1071f0a46b",
-    //   "region"->"dallas",
-    //   "user_id"->"5c5f55667fb846f29946c9f1f0e0f3db",
-    //   "domain_id"->"11b0d7dcb99e42c7a5e742a6aa7977af",
-    //   "domain_name"->"798995",
-    //   "password"->"v!2Q#!!]ODW7cx,T"
-    // )
-    //val bmos = new bluemix(sc, configurationName, simulationProperties)
-    
-    
-    // var jdbcurl:String = "jdbc:db2://dashdb-enterprise-yp-dal09-47.services.dal.bluemix.net:50001/BLUDB:sslConnection=true;"
-    // var dashuser : String = "adamcox"
-    // var dashpass : String = "Lepton12bluDashDB"
-
-    // var jdbcurl:String = props.getProperty("JDBC_URL")
-    // var dashuser : String = props.getProperty("DASHDBUSER")
-    // var dashpass : String = props.getProperty("DASHDBPASS")
     //needed for the SwiftObjStore
     val props = new Properties
     var simulatedSignalContainer : String = ""
@@ -300,9 +242,15 @@ object SETISim {
 
           //only add the public header to output byte stream.
           var mapper = new ObjectMapper();
-          var json = mapper.writeValueAsString(DS.publicHeader);
-          System.out.println(json);
-          dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
+          //var json = mapper.writeValueAsString(DS.labeledPublicHeader);
+          //System.out.println(json);
+          if (dataClass == "test") {
+            //use the unlabeled public header -- this JUST provides a UUID for the data file
+            dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
+          }
+          else {
+            dataOutputByteStream.write(mapper.writeValueAsBytes(DS.labeledPublicHeader));
+          }
           dataOutputByteStream.write('\n');
 
           DS.run(dataOutputByteStream)
@@ -523,9 +471,15 @@ object SETISim {
       //only add the public header to output byte stream.
 
       var mapper = new ObjectMapper();
-      var json = mapper.writeValueAsString(DS.publicHeader);
+      var json = mapper.writeValueAsString(DS.labeledPublicHeader);
       System.out.println(json);
-      dataOutputByteStream.write(mapper.writeValueAsBytes(DS.publicHeader));
+      if (dataClass == "test") {
+        //use the unlabeled public header -- this JUST provides a UUID for the data file
+        dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
+      }
+      else {
+        dataOutputByteStream.write(mapper.writeValueAsBytes(DS.labeledPublicHeader));
+      }
       dataOutputByteStream.write('\n');
 
       try {
@@ -604,7 +558,9 @@ object SETISim {
         }
         else {
           val FOS: FileOutputStream  = new FileOutputStream(new File(outputFileName));
-          FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
+          if (dataClass != "test") {
+            FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
+          }
           FOS.write('\n');
           FOS.write(dataBytes);  //this includes the public header already
           FOS.close();
