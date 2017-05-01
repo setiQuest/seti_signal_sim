@@ -23,12 +23,12 @@ private class SquiggleSquarePulsedNarrowBandDRD(rand: Random, dataClass: String)
     }
     
     
-    //random chance for pure noise
-    //keep this number a secret!!
-    if(dataClass == "test") {
-      if (rand.nextDouble > 0.074) {
-        SNR = 0.0
-      }
-    }
+    // //random chance for pure noise
+    // //keep this number a secret!!
+    // if(dataClass == "test") {
+    //   if (rand.nextDouble > 0.074) {
+    //     SNR = 0.0
+    //   }
+    // }
   }
 }

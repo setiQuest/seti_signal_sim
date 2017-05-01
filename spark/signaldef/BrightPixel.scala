@@ -16,12 +16,12 @@ private class BrightPixel(rand: Random, dataClass: String) extends SignalDef(ran
 
     ampModDuty = nextDoubleFromRange(0.05/129.0, 1.0/129.0)
 
-    //random chance for pure noise
-    //keep this number a secret!!
-    if(dataClass == "test") {
-      if (rand.nextDouble > 0.083) {
-        SNR = 0.0
-      }
-    }
+    // //random chance for pure noise
+    // //keep this number a secret!!
+    // if(dataClass == "test") {
+    //   if (rand.nextDouble > 0.083) {
+    //     SNR = 0.0
+    //   }
+    // }
   }
 }

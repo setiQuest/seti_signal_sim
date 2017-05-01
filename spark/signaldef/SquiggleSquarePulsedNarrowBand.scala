@@ -17,12 +17,12 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String) ex
     ampModPeriod = nextDoubleFromRange(5*6144, 50*6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)
 
-    //random chance for pure noise
-    //keep this number a secret!!
-    if(dataClass == "test") {
-      if (rand.nextDouble > 0.13) {
-        SNR = 0.0
-      }
-    }
+    // //random chance for pure noise
+    // //keep this number a secret!!
+    // if(dataClass == "test") {
+    //   if (rand.nextDouble > 0.13) {
+    //     SNR = 0.0
+    //   }
+    // }
   }
 }

@@ -22,12 +22,12 @@ private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,d
     }
 
 
-    //random chance for pure noise
-    //keep this number a secret!!
-    if(dataClass == "test") {
-      if (rand.nextDouble > 0.11) {
-        SNR = 0.0
-      }
-    }
+    // //random chance for pure noise
+    // //keep this number a secret!!
+    // if(dataClass == "test") {
+    //   if (rand.nextDouble > 0.11) {
+    //     SNR = 0.0
+    //   }
+    // }
   }
 }
