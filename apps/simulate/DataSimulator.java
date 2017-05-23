@@ -24,8 +24,8 @@ public class DataSimulator
 	public double mDriftDivisor = 1024;
 
 
-	public int simulationVersion = 10;
-	public String simulationVersionDate = "27 Apr 2017";
+	public int simulationVersion = 11;
+	public String simulationVersionDate = "23 May 2017";
 	
 	public Random rand = null;
 	public NoiseGenerator noiseGen = null;
@@ -231,7 +231,9 @@ public class DataSimulator
 		}
 		else {
 			signalAmpFactor = SNR;
+			System.out.println("sigN is zero. signal amplitude is : " + signalAmpFactor);
 		}
+
 
 		//now use the initial conditions to build the privateHeader
 

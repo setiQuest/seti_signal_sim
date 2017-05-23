@@ -6,7 +6,7 @@ private class BrightPixel(rand: Random, dataClass: String) extends SignalDef(ran
 
   signalClass = "brightpixel"
   ampModType = "square"
-  ampModPeriod = 129*6144
+  ampModPeriod = 32*6144
 
   def next {
 
@@ -14,7 +14,7 @@ private class BrightPixel(rand: Random, dataClass: String) extends SignalDef(ran
     SNR = nextDoubleFromRange(0.003, 0.3) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
 
-    ampModDuty = nextDoubleFromRange(0.05/129.0, 1.0/129.0)
+    ampModDuty = nextDoubleFromRange(0.05/32.0, 1.0/32.0)
 
     // //random chance for pure noise
     // //keep this number a secret!!

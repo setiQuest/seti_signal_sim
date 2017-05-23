@@ -11,7 +11,8 @@ abstract class SignalDef (val rand: Random, val dataClass: String)  {
   var drift: Double = 0.0
   var driftRateDerivate: Double = 0.0
   var sigmaSquiggle: Double = 0.0
-  var outputLength: Int = 792576 
+  //var outputLength: Int = 786432 128 * 6144
+  var outputLength: Int = 196608  //32 * 6144
   var ampModType: String = "none"
   var ampModPeriod: Double = 0.0
   var ampModDuty: Double = 0.0
