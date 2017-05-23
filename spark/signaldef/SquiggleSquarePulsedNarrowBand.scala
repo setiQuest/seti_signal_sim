@@ -14,7 +14,7 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String) ex
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
     sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
 
-    ampModPeriod = nextDoubleFromRange(5*6144, 50*6144)
+    ampModPeriod = nextDoubleFromRange(5*6144, 15*6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)
 
     // //random chance for pure noise
