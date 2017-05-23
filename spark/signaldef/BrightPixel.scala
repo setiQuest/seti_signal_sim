@@ -11,7 +11,7 @@ private class BrightPixel(rand: Random, dataClass: String) extends SignalDef(ran
   def next {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.003, 0.3) 
+    SNR = nextDoubleFromRange(0.05, 0.5) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
 
     ampModDuty = nextDoubleFromRange(0.05/32.0, 1.0/32.0)

@@ -10,7 +10,7 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String) ex
   def next {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.003, 0.3) 
+    SNR = nextDoubleFromRange(0.05, 0.5) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
     sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
 

@@ -16,7 +16,7 @@ private class NarrowBandDRD(rand: Random, dataClass: String) extends SignalDef(r
       driftRateDerivate = nextDoubleFromRange(0.005, 0.01)
     }
     else {
-      SNR = nextDoubleFromRange(0.003, 0.3) 
+      SNR = nextDoubleFromRange(0.01, 0.3) 
       drift = nextDoubleFromRange(-0.0075, 0.0075) 
       driftRateDerivate = nextDoubleFromRange(0.0001, 0.01)
     }

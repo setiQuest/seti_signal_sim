@@ -11,12 +11,13 @@ private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,d
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
 
     if (dataClass == "basic"){
-      SNR = nextDoubleFromRange(0.2, 0.3)
+      SNR = nextDoubleFromRange(0.4, 0.5)
       drift = nextDoubleFromRange(-0.004, 0.004)
       sigmaSquiggle = nextDoubleFromRange(0.0001, 0.001)
+      //sigmaSquiggle = nextDoubleFromRange(0.001, 0.01)
     }
     else {
-      SNR = nextDoubleFromRange(0.0075, 0.5) 
+      SNR = nextDoubleFromRange(0.05, 0.5) 
       drift = nextDoubleFromRange(-0.0075, 0.0075) 
       sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
     }

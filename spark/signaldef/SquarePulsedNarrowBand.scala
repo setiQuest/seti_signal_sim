@@ -10,7 +10,7 @@ private class SquarePulsedNarrowBand(rand: Random, dataClass: String) extends Si
   def next {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.003, 0.3) 
+    SNR = nextDoubleFromRange(0.01, 0.3) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
     ampModPeriod = nextDoubleFromRange(5*6144, 50*6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)

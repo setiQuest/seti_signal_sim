@@ -15,7 +15,7 @@ private class NarrowBand(rand: Random, dataClass: String) extends SignalDef(rand
       drift = nextDoubleFromRange(-0.004, 0.004)
     }
     else {
-      SNR = nextDoubleFromRange(0.003, 0.3) 
+      SNR = nextDoubleFromRange(0.01, 0.3) 
       drift = nextDoubleFromRange(-0.0075, 0.0075) 
     }
         
