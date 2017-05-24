@@ -19,7 +19,10 @@ def main(argv):
       elif opt in ("-i", "--ifile"):
          inputfile = arg
       elif opt in ("-l", "--log"):
-         logOpt = arg
+         if arg == "True":
+            logOpt = True
+         else:
+            logOpt = False
       elif opt in ("-s", "--skip"):
          skipLines = arg
    print 'Input file is ', inputfile

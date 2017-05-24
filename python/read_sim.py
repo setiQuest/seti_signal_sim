@@ -17,7 +17,7 @@ def get_spectrogram_data(data, shape=(129,6144)):
     spectrogram = np.abs(cpfft)**2
     return spectrogram
 
-def get_spectrogram(filename, shape=(129,6144), skip_lines = 1):
+def get_spectrogram(filename, shape=(32,6144), skip_lines = 1):
     ff = open(filename,'rb')
 
     for i in range(0,skip_lines):
