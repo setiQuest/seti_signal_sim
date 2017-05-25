@@ -19,8 +19,16 @@ object SignalDefFactory {
       val signalDef = new SquarePulsedNarrowBand(rand,dataClass)
       return signalDef
     }
+    case "sinepulsednarrowband" => {
+      val signalDef = new SinePulsedNarrowBand(rand,dataClass)
+      return signalDef
+    }
     case "squigglesquarepulsednarrowband" => {
       val signalDef = new SquiggleSquarePulsedNarrowBand(rand,dataClass)
+      return signalDef
+    }
+    case "squigglesinepulsednarrowband" => {
+      val signalDef = new SquiggleSinePulsedNarrowBand(rand,dataClass)
       return signalDef
     }
     case "squiggle" => {
@@ -32,7 +40,11 @@ object SignalDefFactory {
       return signalDef
     }
     case "squigglesquarepulsednarrowbanddrd" => {
-      val signalDef = new NarrowBandDRD(rand,dataClass)
+      val signalDef = new SquiggleSquarePulsedNarrowBandDRD(rand,dataClass)
+      return signalDef
+    }
+    case "squigglesinepulsednarrowbanddrd" => {
+      val signalDef = new SquiggleSinePulsedNarrowBandDRD(rand,dataClass)
       return signalDef
     }
     case "brightpixel" => {
