@@ -6,7 +6,7 @@ plt.ion()
 
 fig, ax = plt.subplots()
 
-def get_spectrogram_data(data, shape=(129,6144)):
+def get_spectrogram_data(data, shape=(32,6144)):
 
     header, simdata = data.split('\n',1)
 
@@ -15,13 +15,13 @@ def get_spectrogram_data(data, shape=(129,6144)):
     complex_data = complex_data.reshape(*shape)
     cpfft = np.fft.fftshift( np.fft.fft(complex_data), 1)
     spectrogram = np.abs(cpfft)**2
-    return spectrogram
+    return spectrogram, header
 
 def get_spectrogram(filename, shape=(32,6144), skip_lines = 1):
     ff = open(filename,'rb')
-
+    header = []
     for i in range(0,skip_lines):
-      _ = json.loads(ff.readline())
+      header.append(json.loads(ff.readline()))
 
     #raw_data = ff.read()  
     #complex_data = np.frombuffer(raw_data, dtype='i1').astype(np.float32).view(np.complex64)
@@ -29,7 +29,7 @@ def get_spectrogram(filename, shape=(32,6144), skip_lines = 1):
     complex_data = complex_data.reshape(*shape)
     cpfft = np.fft.fftshift( np.fft.fft(complex_data), 1)
     spectrogram = np.abs(cpfft)**2
-    return spectrogram
+    return spectrogram, header
 
 def scale(spectrogram, max=255.0, min=False):
   if min:
@@ -48,7 +48,7 @@ def to_json(fin,fout):
 
 def read_and_show(filename='test.data', log=False, aspect=True, skip_lines=1):
 
-  spectrogram = get_spectrogram(filename, skip_lines=skip_lines)
+  spectrogram, _ = get_spectrogram(filename, skip_lines=skip_lines)
   if log:
     spectrogram = np.log(spectrogram)
 
@@ -59,6 +59,6 @@ def read_and_show(filename='test.data', log=False, aspect=True, skip_lines=1):
     ax.imshow(spectrogram)
 
 def log_spectrum(filename='test.data'):
-  spectrogram = get_spectrogram(filename)
+  spectrogram, _ = get_spectrogram(filename)
   spectrum = np.sum(spectrogram, axis=0)
   ax.semilogy(range(0,len(spectrum)), spectrum)
