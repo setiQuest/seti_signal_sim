@@ -24,8 +24,8 @@ public class DataSimulator
 	public double mDriftDivisor = 1024;
 
 
-	public int simulationVersion = 11;
-	public String simulationVersionDate = "23 May 2017";
+	public int simulationVersion = 12;
+	public String simulationVersionDate = "24 May 2017";
 	
 	public Random rand = null;
 	public NoiseGenerator noiseGen = null;
@@ -210,7 +210,7 @@ public class DataSimulator
 		//very end.
 		//typical "brightpixel" signals will last between
 		//0.1 second up to 2 seconds.** This is now specifically tailored
-		//for typical ACA-sized simulations (128 raster lines * 6144 samples/raster line). 
+		//for simulations of 32 raster lines * 6144 samples/raster line. 
 		//We prevent the ON phase of 
 		//amplitude modulation from "starting" within the last
 		//2% of the simulated waveform 
@@ -218,7 +218,7 @@ public class DataSimulator
 		//** note: "second" here means the time length of a raster line
 		//in ACA files that we're simulating. This does not exactly match
 		//the ACA files, but it makes it easier to visualize and discuss. 
-		maxBPPhase = 0.98;
+		maxBPPhase = 0.93;
 		if (ampModType.equals("brightpixel")){
 				ampPhase = ampPhase*maxBPPhase;
 		}
@@ -296,10 +296,15 @@ public class DataSimulator
 				signalAmpFactor = SNR;
 			}
 
-			if (ampModType.equals("square") || ampModType.equals("brightpixel")){					
-					if( (i - ampPhaseSquare) % ampModPeriod > ampModPeriod*ampModDuty ) {
+			if (ampModType.equals("square")) {					
+					if( (i + ampModPeriod - ampPhaseSquare) % ampModPeriod > ampModPeriod*ampModDuty ) {
 						signalAmpFactor = 0;
 					}
+			}
+			else if (ampModType.equals("brightpixel")) {  //note: the code to set signalAmpFactor=0 for 'square' should work for 'brightpixels', but there was a historical bug that created these seperate formula and I don't want to break anything so just going to leave it separate! 
+				if (i < ampPhaseSquare || i > ampPhaseSquare + ampModPeriod*ampModDuty) {
+					signalAmpFactor = 0;
+				} 
 			}
 			else if (ampModType.equals("sine")) {
 				signalAmpFactor = signalAmpFactor * Math.sin(2.0*Math.PI*i/ampModPeriod + ampPhaseSine);
