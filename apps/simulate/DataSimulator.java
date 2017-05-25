@@ -200,7 +200,10 @@ public class DataSimulator
 		signalX = rand.nextGaussian();
 		signalY = rand.nextGaussian();
 		
-		ampPhase = rand.nextFloat();
+
+		//don't let the amplitude modulation start near the edges of the simulation
+		ampPhase = 0.07 + (0.93 - 0.07)*rand.nextFloat();
+
 		//we do this to ensure that the bright pixel doesn't happen 
 		//*right* at the beginning or end of the simulation.
 		//This is
@@ -218,13 +221,13 @@ public class DataSimulator
 		//** note: "second" here means the time length of a raster line
 		//in ACA files that we're simulating. This does not exactly match
 		//the ACA files, but it makes it easier to visualize and discuss. 
-		maxBPPhase = 0.93;
-		if (ampModType.equals("brightpixel")){
-				ampPhase = ampPhase*maxBPPhase;
-		}
+		// maxBPPhase = 0.93;
+		// if (ampModType.equals("brightpixel")){
+		// 		ampPhase = ampPhase*maxBPPhase;
+		// }
 
 		ampPhaseSquare = ampPhase*ampModPeriod;
-		ampPhaseSine = (ampPhase - 0.5)*Math.PI;
+		ampPhaseSine = (ampPhase - 0.5)*Math.PI; //convert to radians
 
 		if (sigN != 0) {
 			signalAmpFactor = SNR * sigN;
