@@ -169,19 +169,19 @@ class DashDB (jdbc_url: String, user: String, pass: String, databasename: String
     val statement = connection.createStatement()
     val getStatement = "select uuid, container, objectname from setiusers.sunnoise where used = ? limit ?"
     val getPreparedStatement: PreparedStatement = connection.prepareStatement(getStatement)
-    getPreparedStatement.setBoolean(1, false)
+    getPreparedStatement.setString(1, "False")
     getPreparedStatement.setInt(2, num)
 
     getPreparedStatement.executeQuery
   }
 
   //update sun noise table
-  def update_sun_noise_usage(uuid: String, inUse: Boolean) : Int = {
+  def update_sun_noise_usage(uuid: String, inUse: String) : Int = {
     val statement = connection.createStatement()
 
     val updateStatement = "update setiusers.sunnoise set used = ? where uuid = ?"
     val updatePreparedStatement: PreparedStatement = connection.prepareStatement(updateStatement)
-    updatePreparedStatement.setBoolean(1, inUse)
+    updatePreparedStatement.setString(1, inUse)
     updatePreparedStatement.setString(2, uuid)
 
     updatePreparedStatement.executeUpdate

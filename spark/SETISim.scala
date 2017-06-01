@@ -82,19 +82,33 @@ object SETISim {
     val conf = new SparkConf().setAppName("SETI Sim")
     val sc = new SparkContext(conf)
 
-    val initSeed: Long = System.currentTimeMillis()*nSim*numPartitions
+    //prevents creating empty partitions, which can result in a pointer exception
+    //when iterating through data (such as during mapPartitionsWithIndex function)
+    var numPartitionsNeeded = numPartitions;
+
+    if (nSim < numPartitionsNeeded) {
+      numPartitionsNeeded = nSim;
+    }
+
+    val initSeed: Long = System.currentTimeMillis()*nSim*numPartitionsNeeded
 
     //needed for the SwiftObjStore
     val props = new Properties
     var simulatedSignalContainer : String = ""
+    var dashdb_database_name = props.getProperty("databasename")
 
     props.load(getClass.getResourceAsStream("/simulation.properties"))
     dataClass match {
       case "test" => {
         simulatedSignalContainer = props.getProperty("test_data_container")
+        dashdb_database_name = props.getProperty("test_databasename")
       }
       case "basic" => {
         simulatedSignalContainer = props.getProperty("basic_data_container")
+      }
+      case "basictest" => {
+        simulatedSignalContainer = props.getProperty("basic_test_data_container")
+        dashdb_database_name = props.getProperty("basic_test_databasename")
       }
       case "training" => {
         simulatedSignalContainer = props.getProperty("training_data_container")
@@ -103,7 +117,7 @@ object SETISim {
         simulatedSignalContainer = props.getProperty("private_data_container")
       }
       case _ => {
-        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic' or 'private'.")
+        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic', 'basictest' or 'private'.")
         return
       }
     }
@@ -122,13 +136,13 @@ object SETISim {
       //need to get list of nSim noise files from database
       //build new rdd with (i, container, objectname)
       println("querying database for sun noise")
-      val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
-      var sunnoise = dashdbSlow.get_sun_noise(nSim)
+      val dashdbForSun : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), dashdb_database_name)  //will need to use a connection pool. 
+      var sunnoise = dashdbForSun.get_sun_noise(nSim)
       var counter: Int = 0
       println("filling sun noise")
       while ( sunnoise.next ) {
 
-        if (rand.nextDouble > 0.27) {  //keep this fraction secret!  some number of the simulated noise files is gaussian!
+        if (rand.nextDouble > 0.0) {  //keep this fraction secret!  some number of the simulated noise files is gaussian!
           noiseArray(counter) = (counter, sunnoise.getString("container"), sunnoise.getString("objectname"), sunnoise.getString("uuid"))
         }
         else {
@@ -144,7 +158,7 @@ object SETISim {
       if (counter != nSim ) {
         throw MissingSunNoise(s"Found $counter noise files, expected $nSim")
       }
-
+      dashdbForSun.connection.close()
     }
     else {
       //build new rdd with (i, noiseName, "", "")
@@ -153,13 +167,21 @@ object SETISim {
       }
     }
 
-    var rdd = sc.parallelize(noiseArray, numPartitions)
+    var rdd = sc.parallelize(noiseArray, numPartitionsNeeded)
  
 
     var count = rdd.count
     println(s"Starting $count simulations... ")
 
     var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
+
+      //how do I bail if iter is empty? or if it's null?
+      //if (!iter.hasNext) {
+      //  return iter
+      //}
+
+      val dashDBConnection : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), dashdb_database_name)  //will need to use a connection pool. 
+
       var seed:Long = initSeed + indx
       var randGen = new Random(seed)
 
@@ -173,26 +195,30 @@ object SETISim {
       mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
       mConf.set(s"fs.swift2d.service.$configurationName.region", props.getProperty("region"));
 
-      var nSimDivFive = nSim/5
-      var nSimTimesTwo = 2*nSim
-      mConf.set(s"fs.stocator.MaxPerRoute", nSim.toString)
-      mConf.set(s"fs.stocator.MaxTotal", nSimTimesTwo.toString)
+      var maxPerRoute:Int = 100
+      if (nSim > 100) {
+        maxPerRoute = nSim
+      }
+      var maxTotal:Int = 2*maxPerRoute
+
+      mConf.set(s"fs.stocator.MaxPerRoute", maxPerRoute.toString)
+      mConf.set(s"fs.stocator.MaxTotal", maxTotal.toString)
       mConf.set(s"fs.stocator.SoTimeout", "10000")
       mConf.set(s"fs.stocator.ReqConnectTimeout", "10000")
       mConf.set(s"fs.stocator.ReqConnectionRequestTimeout", "10000")
       mConf.set(s"fs.stocator.ReqSocketTimeout", "10000")
       
-      iter.map(i => {
+      val objstore: SwiftObjStore = new SwiftObjStore(mConf,configurationName)
+
+      val myReturnIter = iter.map(i => {
           
         //
         // each row, i, is a tuple: (int, noisename, "", "") or (int, container, objectname, uuid)
         //
 
-
-
-        val objstore: SwiftObjStore = new SwiftObjStore(mConf,configurationName)
+        //val objstore: SwiftObjStore = new SwiftObjStore(mConf,configurationName)
         //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
-        val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  //will need to use a connection pool. 
+        // val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"),  dashdb_database_name)  //will need to use a connection pool. 
 
         var uuid:String = UUID.randomUUID().toString()
         var status = "success"
@@ -244,7 +270,7 @@ object SETISim {
           var mapper = new ObjectMapper();
           //var json = mapper.writeValueAsString(DS.labeledPublicHeader);
           //System.out.println(json);
-          if (dataClass == "test") {
+          if (dataClass == "test" || dataClass == "basictest") {
             //use the unlabeled public header -- this JUST provides a UUID for the data file
             dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
           }
@@ -269,42 +295,42 @@ object SETISim {
           try {
             noiseGen match {
               case m:SunNoise => {
-                dashdbSlow.update_sun_noise_usage(i._4, true)
-                dashdbSlow.noise_file_uuid(i._4)
+                dashDBConnection.update_sun_noise_usage(i._4, "True")
+                dashDBConnection.noise_file_uuid(i._4)
               }
               case _ => {
-                dashdbSlow.noise_file_uuid("")
+                dashDBConnection.noise_file_uuid("")
               }
             }
 
             
-            dashdbSlow.uuid(DS.uuid)
-            dashdbSlow.sigN(DS.sigN);
-            dashdbSlow.noiseName(noiseGen.getName());
-            dashdbSlow.dPhi(DS.dPhi);
-            dashdbSlow.SNR(DS.SNR);
-            dashdbSlow.drift(DS.drift);
-            dashdbSlow.driftRateDerivative(DS.driftRateDerivate);
-            dashdbSlow.jitter(DS.jitter);
-            dashdbSlow.len(DS.len);
-            dashdbSlow.ampModType(DS.ampModType);
-            dashdbSlow.ampModPeriod(DS.ampModPeriod);
-            dashdbSlow.ampModDuty(DS.ampModDuty);
-            dashdbSlow.ampPhase(DS.ampPhase);
-            dashdbSlow.ampPhaseSquare(DS.ampPhaseSquare);
-            dashdbSlow.ampPhaseSine(DS.ampPhaseSine);
-            dashdbSlow.signalClass(DS.signalClass);
-            dashdbSlow.seed(DS.seed);
-            dashdbSlow.mDriftDivisor(DS.mDriftDivisor);
-            dashdbSlow.sinDrift(DS.sinDrift);
-            dashdbSlow.cosDrift(DS.cosDrift);
-            dashdbSlow.simulationVersion(DS.simulationVersion);
-            dashdbSlow.simulationVersionDate(DS.simulationVersionDate);
+            dashDBConnection.uuid(DS.uuid)
+            dashDBConnection.sigN(DS.sigN);
+            dashDBConnection.noiseName(noiseGen.getName());
+            dashDBConnection.dPhi(DS.dPhi);
+            dashDBConnection.SNR(DS.SNR);
+            dashDBConnection.drift(DS.drift);
+            dashDBConnection.driftRateDerivative(DS.driftRateDerivate);
+            dashDBConnection.jitter(DS.jitter);
+            dashDBConnection.len(DS.len);
+            dashDBConnection.ampModType(DS.ampModType);
+            dashDBConnection.ampModPeriod(DS.ampModPeriod);
+            dashDBConnection.ampModDuty(DS.ampModDuty);
+            dashDBConnection.ampPhase(DS.ampPhase);
+            dashDBConnection.ampPhaseSquare(DS.ampPhaseSquare);
+            dashDBConnection.ampPhaseSine(DS.ampPhaseSine);
+            dashDBConnection.signalClass(DS.signalClass);
+            dashDBConnection.seed(DS.seed);
+            dashDBConnection.mDriftDivisor(DS.mDriftDivisor);
+            dashDBConnection.sinDrift(DS.sinDrift);
+            dashDBConnection.cosDrift(DS.cosDrift);
+            dashDBConnection.simulationVersion(DS.simulationVersion);
+            dashDBConnection.simulationVersionDate(DS.simulationVersionDate);
 
-            dashdbSlow.time(new Timestamp(System.currentTimeMillis()));
-            dashdbSlow.container(simulatedSignalContainer);
-            dashdbSlow.outputFileName(outputFileName);
-            dashdbSlow.etag(localEtag);
+            dashDBConnection.time(new Timestamp(System.currentTimeMillis()));
+            dashDBConnection.container(simulatedSignalContainer);
+            dashDBConnection.outputFileName(outputFileName);
+            dashDBConnection.etag(localEtag);
 
             message += s"PUT to object store $simulatedSignalContainer, $outputFileName, SNR: ${DS.SNR}, class: ${DS.signalClass}, data_class: $dataClass\n"
 
@@ -322,7 +348,7 @@ object SETISim {
             //update database
             message += s"INSERT to dashDB. etag: $localEtag\n"
 
-            dashdbSlow.insertDataStatement.executeUpdate
+            dashDBConnection.insertDataStatement.executeUpdate
 
           } catch {
               // ... code to handle exceptions
@@ -335,7 +361,7 @@ object SETISim {
                 status = "failed"
                 try {
                   println("Transaction is being rolled back");
-                  dashdbSlow.connection.rollback;
+                  dashDBConnection.connection.rollback;
                   objstore.delete(simulatedSignalContainer, outputFileName);  
                 } catch {
                   case ee : Throwable => {
@@ -352,7 +378,7 @@ object SETISim {
                 message += s"${e.getMessage}\n"
                 try {
                   println("Transaction is being rolled back");
-                  dashdbSlow.connection.rollback
+                  dashDBConnection.connection.rollback
                   objstore.delete(simulatedSignalContainer, outputFileName);
                 } catch {
                   case ee : Throwable => {
@@ -363,10 +389,10 @@ object SETISim {
                 }
               }
           }  finally {
-            message += "Closing db prepared statement\n"
-            dashdbSlow.insertDataStatement.close
-            dashdbSlow.connection.close
-            objstore.fs.close
+            message += "finally\n"
+            //dashdbSlow.insertDataStatement.close
+            // dashdbSlow.connection.close
+            //objstore.fs.close
           }
         }
         
@@ -374,9 +400,13 @@ object SETISim {
 
         (seed, uuid, status, message, outputFileName, i._2)
 
-      })  
+      }).toList
 
-      
+
+      dashDBConnection.connection.close()
+      objstore.fs.close()
+
+      myReturnIter.iterator
     }
 
     //rdd2.count()
@@ -413,12 +443,19 @@ object SETISim {
     var simulatedSignalContainer : String = ""
     
     props.load(getClass.getResourceAsStream("/simulation.properties"))
+    var dashdb_database_name = props.getProperty("databasename")
+
     dataClass match {
       case "test" => {
         simulatedSignalContainer = props.getProperty("test_data_container")
+        dashdb_database_name = props.getProperty("test_databasename")
       }
       case "basic" => {
         simulatedSignalContainer = props.getProperty("basic_data_container")
+      }
+      case "basictest" => {
+        simulatedSignalContainer = props.getProperty("basic_test_data_container")
+        dashdb_database_name = props.getProperty("basic_test_databasename")
       }
       case "training" => {
         simulatedSignalContainer = props.getProperty("training_data_container")
@@ -427,13 +464,13 @@ object SETISim {
         simulatedSignalContainer = props.getProperty("private_data_container")
       }
       case _ => {
-        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic' or 'private'..")
+        println("Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic', 'basictest' or 'private'..")
         return
       }
     }
 
     val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
-    val dashdb: DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), props.getProperty("databasename"))  
+    val dashdb: DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), dashdb_database_name)  
     //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
     
     val seed: Long = System.currentTimeMillis()
@@ -473,7 +510,7 @@ object SETISim {
       var mapper = new ObjectMapper();
       var json = mapper.writeValueAsString(DS.labeledPublicHeader);
       System.out.println(json);
-      if (dataClass == "test") {
+      if (dataClass == "test" || dataClass == "basictest") {
         //use the unlabeled public header -- this JUST provides a UUID for the data file
         dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
       }
@@ -486,7 +523,7 @@ object SETISim {
             
         // noiseGen match {
         //   case m:SunNoise => {
-        //     dashdb.update_sun_noise_usage(i._4, true)
+        //     dashdb.update_sun_noise_usage(i._4, "True")
         //     dashdb.noise_file_uuid(i._4)
         //   }
         //   case _ => {
@@ -558,7 +595,7 @@ object SETISim {
         }
         else {
           val FOS: FileOutputStream  = new FileOutputStream(new File(outputFileName));
-          if (dataClass != "test") {
+          if (dataClass != "test" && dataClass != "basictest") {
             FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
           }
           FOS.write('\n');
