@@ -94,10 +94,11 @@ object SETISim {
 
     //needed for the SwiftObjStore
     val props = new Properties
-    var simulatedSignalContainer : String = ""
-    var dashdb_database_name = props.getProperty("databasename")
-
     props.load(getClass.getResourceAsStream("/simulation.properties"))
+    var dashdb_database_name = props.getProperty("databasename")
+    
+    var simulatedSignalContainer : String = ""  
+    
     dataClass match {
       case "test" => {
         simulatedSignalContainer = props.getProperty("test_data_container")
