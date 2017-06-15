@@ -15,7 +15,7 @@ However, before you do, you should create the file `resources/simulation.propert
 in the `resources` folder, which will tell you which fields you need to create.
 
 ```
-sbt assembly
+sbt clean assembly
 ```
 
 ### OLD way, no SBT
