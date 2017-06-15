@@ -191,7 +191,7 @@ the `tail` command. Then pipe the data into the standard SETI command-line tools
 
 ```
 len=6144  
-tail -n +3 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 129 -p > wf1.pgm
+tail -n +3 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 32 -p > wf1.pgm
 ```
 
 SETI command line tools are here: https://github.com/setiQuest/Algorithms
