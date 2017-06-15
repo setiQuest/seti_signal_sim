@@ -66,38 +66,41 @@ to use the GaussianNoise.java class to generate noise.
 ##### Properties
 
 You must create the file `resources/simulation.properties`. A template with all of the necessary
-property values is in the repository. You should `cp resoureces/simulation.properties.template resoureces/simulation.properties` and then fill in the values. 
-
-##### Invocation
-
-```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <target_data_set> <processing_mode> 2 8 narrowband gaussian
-```
-
-* `target_data_set`: 
-  * `training` generates training data set output
-  * `test` generates test data set output
-* `processing_mode`: 
-  * `local`  persists generated signals in data files in the local file system
-  * `serial` persists generated signal metadata to the dashdb repository
-  * `spark`
-
+property values is in the repository. You should `cp resources/simulation.properties.template resources/simulation.properties` and then fill in the values. 
 
 ##### Example
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 2 8 narrowband gaussian
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 2 narrowband gaussian
 ```
 
 or
 
+#### Generate signal data files and metadata 
+
+Invocation:
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 2 8 narrowband gaussian
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> spark <number_of_partitions> <number_of_simulations> <signal_class> <noise>
 ```
 
+ * `<data_class>` one of `training`, `test`, `basic`, `basictest`, `private`
+ * `<number_of_partitions>` number of spark executors to use
+ * `<number_of_simulations>` number of signals to simulate
+ * `<signal_class>`
+ * `<noise>` one of `gaussian`, `sunnoise` or the name of a file
+
+Example - generate 1,000 test narrowband signals with sun noise
 ```
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 1000 narrowband sunnnoise
 ```
+
+
+Example: 
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 42 8 narrowband gaussian
+```
+
+
 
 
 ```
