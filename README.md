@@ -68,6 +68,21 @@ to use the GaussianNoise.java class to generate noise.
 You must create the file `resources/simulation.properties`. A template with all of the necessary
 property values is in the repository. You should `cp resoureces/simulation.properties.template resoureces/simulation.properties` and then fill in the values. 
 
+##### Invocation
+
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <target_data_set> <processing_mode> 2 8 narrowband gaussian
+```
+
+* `target_data_set`: 
+  * `training` generates training data set output
+  * `test` generates test data set output
+* `processing_mode`: 
+  * `local`  persists generated signals in data files in the local file system
+  * `serial` persists generated signal metadata to the dashdb repository
+  * `spark`
+
+
 ##### Example
 
 ```
