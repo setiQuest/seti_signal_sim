@@ -48,7 +48,7 @@ jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
 ### Using SBT 
 
 If you've used `sbt` to package the code, the resulting jar file is 
-`target/signalsimulation-assembly-8.0.jar`
+`target/scala-x.YY/signalsimulation-assembly-8.0.jar`
 
 This main class for this jar file, however, is now in [spark/SETISim.scala](spark/SETISim.scala)
 
