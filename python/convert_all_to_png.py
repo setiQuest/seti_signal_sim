@@ -74,7 +74,7 @@ def main(argv):
       spectrogram, header_list = read_sim.get_spectrogram(datfile, skip_lines=skipLines)
       ax.imshow(localLog(spectrogram, logOpt), aspect = 0.5*float(spectrogram.shape[1]) / spectrogram.shape[0])
       
-      pngname,_ = os.path.splitext(datfile)
+      pngname,_ = os.path.splitext(os.path.basename(datfile))  
       pngname = pngname + '.png'
       fig.savefig(os.path.join(outdir, pngname))
 
