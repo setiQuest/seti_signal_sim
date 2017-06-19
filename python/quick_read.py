@@ -7,14 +7,22 @@ def main(argv):
    inputfile = ''
    logOpt = False
    skipLines = 2
+   noise = None
+
    try:
-      opts, args = getopt.getopt(argv,"hi:l:",["ifile=","log="])
+      opts, args = getopt.getopt(argv,"hi:l:s:n:",["ifile=","log=","skip=","noise="])
    except getopt.GetoptError:
-      print 'test.py -i <inputfile> -l <logOpt>'
+      print 'quick_read.py -i <inputfile> -l <logOpt> -s <skip> -n <noise>'
       sys.exit(2)
+   
+   print args
+
+   print opts
+   print argv
+
    for opt, arg in opts:
       if opt == '-h':
-         print 'test.py -i <inputfile> -l <logOpt>'
+         print 'quick_read.py -i <inputfile> -l <logOpt> -s <skip> -n <noise>'
          sys.exit()
       elif opt in ("-i", "--ifile"):
          inputfile = arg
@@ -24,12 +32,17 @@ def main(argv):
          else:
             logOpt = False
       elif opt in ("-s", "--skip"):
-         skipLines = arg
+         skipLines = int(arg)
+      elif opt in ("-n", "--noise"):
+         noise = arg
+
    print 'Input file is ', inputfile
    print 'Log option is ', logOpt
+   print 'Noise option is ', noise
+   print 'Number of skip lines is ', skipLines
 
 
-   read_sim.read_and_show(inputfile, logOpt, aspect=True, skip_lines = skipLines)
+   read_sim.read_and_show(inputfile, logOpt, aspect=True, skip_lines = skipLines, noise=noise)
 
    raw_input("type anything to quit")
 

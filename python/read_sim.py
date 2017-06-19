@@ -1,6 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 plt.ion()
 
@@ -46,17 +50,35 @@ def to_json(fin,fout):
 #isn't this faster?
 #spectrogram = cpfft.real**2 + cpfft.imag**2
 
-def read_and_show(filename='test.data', log=False, aspect=True, skip_lines=1):
+def read_and_show(filename='test.data', log=False, aspect=True, skip_lines=1, noise=None):
 
   spectrogram, _ = get_spectrogram(filename, skip_lines=skip_lines)
-  if log:
-    spectrogram = np.log(spectrogram)
+
+  if noise:
+    print('Removing noise')
+    noise_array = pickle.load(open(noise))
+    print("noise",noise_array.mean())
+    print(noise_array)
+    print("spectrogram", spectrogram.mean())
+    print(spectrogram)
+    spectrogram -= noise_array  
+    spectrogram[spectrogram < 0] = 1e-10 
+    print("diff", spectrogram.mean())
+    print(spectrogram)
+
+  def localLog(spectrogram):
+    if log:
+      return np.log(spectrogram)
+    else:
+      return spectrogram
 
   if(aspect):
-    ax.imshow(spectrogram, 
+    ax.imshow(localLog(spectrogram), 
       aspect = 0.5*float(spectrogram.shape[1]) / spectrogram.shape[0])
   else:
-    ax.imshow(spectrogram)
+    ax.imshow(localLog(spectrogram))
+
+
 
 def log_spectrum(filename='test.data'):
   spectrogram, _ = get_spectrogram(filename)
