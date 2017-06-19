@@ -12,7 +12,7 @@ import glob
 import os
 
 
-usagestring = 'convert_all_to_png.py -o <outdir> -l <logOpt> -s <skip> -n <noise>'
+usagestring = 'convert_all_to_png.py -o <outdir> -l <logOpt> -s <skip> -m <spectrogram height factor>'
 
 
 def localLog(spectrogram, logOpt):
@@ -27,12 +27,13 @@ def main(argv):
    indir = '.'
    logOpt = True
    skipLines = 2
+   m = 12
    #noise = None
 
    fig, ax = plt.subplots()
 
    try:
-      opts, args = getopt.getopt(argv,"hi:o:l:s:",["indir=","outdir=","log=","skip="])
+      opts, args = getopt.getopt(argv,"hi:o:l:s:m:",["indir=","outdir=","log=","skip=","m="])
    except getopt.GetoptError:
       print(usagestring)
       sys.exit(2)
@@ -57,6 +58,8 @@ def main(argv):
             logOpt = False
       elif opt in ("-s", "--skip"):
          skipLines = int(arg)
+      elif opt in ("-m", "--m"):
+         m = int(arg)
       # elif opt in ("-n", "--noise"):
       #    noise = arg
 
@@ -71,8 +74,8 @@ def main(argv):
    for datfile in allDatFiles:
 
       ax.cla()
-      spectrogram, header_list = read_sim.get_spectrogram(datfile, skip_lines=skipLines)
-      ax.imshow(localLog(spectrogram, logOpt), aspect = 0.5*float(spectrogram.shape[1]) / spectrogram.shape[0])
+      spectrogram, header_list = read_sim.get_spectrogram(datfile, skip_lines=skipLines, shape=(int(32*m),int(6144/m)))
+      ax.imshow(localLog(spectrogram, logOpt), aspect = 0.5*float(spectrogram.shape[1]) / spectrogram.shape[0], cmap='gray')
       
       pngname,_ = os.path.splitext(os.path.basename(datfile))  
       pngname = pngname + '.png'
