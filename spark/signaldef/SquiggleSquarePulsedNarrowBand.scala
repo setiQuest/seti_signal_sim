@@ -10,12 +10,12 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String) ex
   def next {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.05, 0.5) 
+    SNR = nextDoubleFromRange(0.1, 0.6) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
-    sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
+    sigmaSquiggle = nextDoubleFromRange(0.0001, 0.005)
 
     ampModPeriod = nextDoubleFromRange(5*6144, 15*6144)
-    ampModDuty = nextDoubleFromRange(0.05, 0.9)
+    ampModDuty = nextDoubleFromRange(0.15, 0.8)
 
     // //random chance for pure noise
     // //keep this number a secret!!

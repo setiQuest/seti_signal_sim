@@ -12,7 +12,7 @@ private class SquiggleSquarePulsedNarrowBandDRD(rand: Random, dataClass: String)
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
     SNR = nextDoubleFromRange(0.05, 0.5) 
     drift = nextDoubleFromRange(-0.0075, 0.0075) 
-    sigmaSquiggle = nextDoubleFromRange(0.0001, 0.01)
+    sigmaSquiggle = nextDoubleFromRange(0.0001, 0.005)
 
     ampModPeriod = nextDoubleFromRange(5*6144, 15*6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)
