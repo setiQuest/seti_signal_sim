@@ -480,6 +480,8 @@ object SETISim {
     for (i <- 0 until nSim) {
       
       var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
+      
+      val digest:MessageDigest = MessageDigest.getInstance("MD5");  //I could probably do this outside of the loop and call reset, but I don't want to test this right now.
 
       var noiseGen : NoiseGenerator = null
       if(noiseName == "gaussian") {
@@ -493,32 +495,64 @@ object SETISim {
       //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
       var uuid:String = UUID.randomUUID().toString()
-
-      //  output file name is based on uuid
-      var outputFileName = s"$uuid.dat"
-
+      println(s"original uuid: $uuid")
       println(sigdef.toString)
-      println("file: " + outputFileName + "\n")
+      
 
       var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
         sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
         sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
     
-      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+      // var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+      var rawSimulatedDataByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+
+      DS.run(rawSimulatedDataByteStream)
+
+      //check to see how many times the simulated amplitude was beyond the 
+      //8-bit range
+      println("Number of X pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeX)
+      println(f"                ${DS.numBeyondDynamicRangeX} / ${DS.len} : ${100*DS.numBeyondDynamicRangeX / DS.len.toFloat}%.2f %%")
+      println("Number of Y pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeY)
+      println(f"                ${DS.numBeyondDynamicRangeY} / ${DS.len} : ${100*DS.numBeyondDynamicRangeY / DS.len.toFloat}%.2f %%")
+
+      // if (DS.numBeyondDynamicRangeX > 0.5*DS.len || DS.numBeyondDynamicRangeY > 0.5*DS.len) {
+      //   println("try a smaller amplitude. good bye");
+      //   return;
+      // }
 
       //only add the public header to output byte stream.
 
       var mapper = new ObjectMapper();
-      var json = mapper.writeValueAsString(DS.labeledPublicHeader);
-      System.out.println(json);
+      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+
       if (dataClass == "test" || dataClass == "basictest") {
         //use the unlabeled public header -- this JUST provides a UUID for the data file
+
+        //also, for the TEST cases, we are going to change the UUID value to a MD5 hash in order to 
+        //ensure test data cannot be grouped together by UUID, since UIID encodes the time stamp.
+        //For example, if 100 test simulations were created at the same time, thier UUIDs could be used
+        //to reconstruct the time they were created and then allow somebody to group them together
+        var hashBytes = digest.digest(rawSimulatedDataByteStream.toByteArray());
+        DS.uuid = HexBytesUtil.bytes2hex(hashBytes)
+ 
+        DS.privateHeader.put("uuid", DS.uuid);
+        DS.labeledPublicHeader.put("uuid", DS.uuid);
+        DS.unlabeledPublicHeader.put("uuid", DS.uuid);
+
         dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
       }
       else {
         dataOutputByteStream.write(mapper.writeValueAsBytes(DS.labeledPublicHeader));
       }
       dataOutputByteStream.write('\n');
+      dataOutputByteStream.write(rawSimulatedDataByteStream.toByteArray());
+
+      //  output file name is based on uuid
+      var outputFileName = s"${DS.uuid}.dat"
+      println("file: " + outputFileName + "\n")
+      println("labeled public header: \n")
+      System.out.println( mapper.writeValueAsString(DS.labeledPublicHeader) );
+
 
       try {
             
@@ -562,19 +596,9 @@ object SETISim {
           dashdb.outputFileName(outputFileName);
         } 
 
-        DS.run(dataOutputByteStream)
+        
 
-        //check to see how many times the simulated amplitude was beyond the 
-        //8-bit range
-        println("Number of X pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeX)
-        println(f"                ${DS.numBeyondDynamicRangeX} / ${DS.len} : ${100*DS.numBeyondDynamicRangeX / DS.len.toFloat}%.2f %%")
-        println("Number of Y pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeY)
-        println(f"                ${DS.numBeyondDynamicRangeY} / ${DS.len} : ${100*DS.numBeyondDynamicRangeY / DS.len.toFloat}%.2f %%")
-
-        // if (DS.numBeyondDynamicRangeX > 0.5*DS.len || DS.numBeyondDynamicRangeY > 0.5*DS.len) {
-        //   println("try a smaller amplitude. good bye");
-        //   return;
-        // }
+        
         //first, insert data file to object store
         //then verify it is there (should I do a md5 checksum?)
 
@@ -585,7 +609,7 @@ object SETISim {
         //upload output file
         var dataBytes = dataOutputByteStream.toByteArray();
          //calculate local md5
-        val digest:MessageDigest = MessageDigest.getInstance("MD5");
+        
         var hashBytes = digest.digest(dataBytes);
         var localEtag = HexBytesUtil.bytes2hex(hashBytes)
 
@@ -594,12 +618,12 @@ object SETISim {
         if (!local) {
           var etag = objstore.put(simulatedSignalContainer, outputFileName, dataBytes)
         }
-        else {
+        else { //if we are local, create a file output stream and include the private header information
           val FOS: FileOutputStream  = new FileOutputStream(new File(outputFileName));
           if (dataClass != "test" && dataClass != "basictest") {
             FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
+            FOS.write('\n');
           }
-          FOS.write('\n');
           FOS.write(dataBytes);  //this includes the public header already
           FOS.close();
         }
