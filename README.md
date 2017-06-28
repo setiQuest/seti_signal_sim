@@ -108,7 +108,7 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 
 ```
 
 
-Note, you can't use sunnoise data with 
+Note, you can't use sunnoise data in local mode (didn't write the code to do this). But, you can use a sunnoise file, if you have one. 
 ```
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar basic local 10 narrowband gaussian
 ```

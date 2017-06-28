@@ -17,6 +17,11 @@ usagestring = 'convert_all_to_png.py -o <outdir> -l <logOpt> -s <skip> -m <spect
 
 def localLog(spectrogram, logOpt):
    if logOpt:
+      
+      #remove all zero values and replace them with the minimum 
+      spectrogram_pos = spectrogram[spectrogram > 0]
+      spectrogram[spectrogram <= 0] = spectrogram_pos.min()
+
       return np.log(spectrogram)
    else:
       return spectrogram
