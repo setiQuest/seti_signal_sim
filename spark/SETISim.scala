@@ -223,11 +223,9 @@ object SETISim {
 
         var uuid:String = UUID.randomUUID().toString()
         var status = "success"
-
-        var message = s"starting simulation $seed for $uuid\n"
         var outputFileName = s"$uuid.dat"
-
-        message += s"$outputFileName\n"
+        var message = s"starting simulation $seed for original $uuid\n"
+        
 
         var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
 
@@ -261,30 +259,52 @@ object SETISim {
         if (status == "success") {
           //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
+
           var DS = new DataSimulator(noiseGen, sigdef.sigmaN, sigdef.deltaPhiRad, sigdef.SNR, sigdef.drift, 
             sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
             sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
+
+          var rawSimulatedDataByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+
+          DS.run(rawSimulatedDataByteStream);
+
 
           var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
 
           //only add the public header to output byte stream.
           var mapper = new ObjectMapper();
+          val digest:MessageDigest = MessageDigest.getInstance("MD5");
+
           //var json = mapper.writeValueAsString(DS.labeledPublicHeader);
           //System.out.println(json);
           if (dataClass == "test" || dataClass == "basictest") {
             //use the unlabeled public header -- this JUST provides a UUID for the data file
+
+            //also, for the TEST cases, we are going to change the UUID value to a MD5 hash in order to 
+            //ensure test data cannot be grouped together by UUID, since UIID encodes the time stamp.
+            //For example, if 100 test simulations were created at the same time, thier UUIDs could be used
+            //to reconstruct the time they were created and then allow somebody to group them together
+            var hashBytes = digest.digest(rawSimulatedDataByteStream.toByteArray());
+            DS.uuid = HexBytesUtil.bytes2hex(hashBytes)
+     
+            DS.privateHeader.put("uuid", DS.uuid);
+            DS.labeledPublicHeader.put("uuid", DS.uuid);
+            DS.unlabeledPublicHeader.put("uuid", DS.uuid);
+
             dataOutputByteStream.write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
           }
           else {
             dataOutputByteStream.write(mapper.writeValueAsBytes(DS.labeledPublicHeader));
           }
           dataOutputByteStream.write('\n');
+          dataOutputByteStream.write(rawSimulatedDataByteStream.toByteArray());
 
-          DS.run(dataOutputByteStream)
+         
+          outputFileName = s"${DS.uuid}.dat"
+          message += s"File name: $outputFileName\n"
 
           noiseGen.close();
 
-          val digest:MessageDigest = MessageDigest.getInstance("MD5");
           var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
           var localEtag = HexBytesUtil.bytes2hex(hashBytes)
         
