@@ -1,6 +1,4 @@
-# seti_siginal_sim
-
-Yes, "siginal" is a typo. :)
+# SETI Simulation Signals
 
 ## Compile
 
