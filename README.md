@@ -55,3 +55,41 @@ from PIL import Image, ImageFilter
 im = Image.open(‘wf1.pgm’)
 im.show()
 ```
+
+### Creating DASDHDB tables
+
+```
+create table setiusers.simsignal (
+uuid VARCHAR(128) not null,
+sigma_noise DECIMAL(31,10),
+noise_name  VARCHAR(128),
+delta_phi DECIMAL(31,10),
+signal_to_noise_ratio DECIMAL(31,10),
+drift DECIMAL(31,10),
+drift_rate_derivative DECIMAL(31,10),
+jitter DECIMAL(31,10),
+len BIGINT,
+amp_modulation_type VARCHAR(128),
+amp_modulation_period DECIMAL(31,10),
+amp_modulation_duty DECIMAL(31,10),
+amp_phase DECIMAL(31,10),
+amp_phase_square DECIMAL(31,10),
+amp_phase_sine DECIMAL(31,10),
+signal_classification VARCHAR(128),
+seed BIGINT,
+drift_divisor DECIMAL(31,10),
+initial_sine_drift DECIMAL(31,10),
+initial_cosine_drift DECIMAL(31,10),
+simulator_software_version INT, 
+simulator_software_version_date VARCHAR(128),
+date_created TIMESTAMP(10),
+container VARCHAR(128),
+objectname VARCHAR(128),
+etag VARCHAR(256),
+noise_file_uuid VARCHAR(128)
+);
+```
+
+## License
+
+All documentation and software in this repository is licensed under the [Apache License, Version 2.0](LICENSE).
