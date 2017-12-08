@@ -264,12 +264,13 @@ object SETISim {
             sigdef.driftRateDerivate, sigdef.sigmaSquiggle, sigdef.outputLength, sigdef.ampModType, sigdef.ampModPeriod, 
             sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
 
-          var rawSimulatedDataByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+          var rawSimulatedDataByteStream = new ByteArrayOutputStream(2*sigdef.outputLength);
 
           DS.run(rawSimulatedDataByteStream);
 
+          DS.updatePrivateHeader();
 
-          var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+          var dataOutputByteStream = new ByteArrayOutputStream(rawSimulatedDataByteStream.size());
 
           //only add the public header to output byte stream.
           var mapper = new ObjectMapper();
@@ -333,7 +334,7 @@ object SETISim {
             dashDBConnection.drift(DS.drift);
             dashDBConnection.driftRateDerivative(DS.driftRateDerivate);
             dashDBConnection.jitter(DS.jitter);
-            dashDBConnection.len(DS.len);
+            dashDBConnection.len(DS.numberOfDataSamples);
             dashDBConnection.ampModType(DS.ampModType);
             dashDBConnection.ampModPeriod(DS.ampModPeriod);
             dashDBConnection.ampModDuty(DS.ampModDuty);
@@ -529,18 +530,20 @@ object SETISim {
         sigdef.ampModDuty, sigdef.signalClass, seed, randGen, uuid);
     
       // var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
-      var rawSimulatedDataByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+      var rawSimulatedDataByteStream = new ByteArrayOutputStream(2*sigdef.outputLength);
 
       DS.run(rawSimulatedDataByteStream)
 
+      DS.updatePrivateHeader();
+      
       //check to see how many times the simulated amplitude was beyond the 
       //8-bit range
       println("Number of X pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeX)
-      println(f"                ${DS.numBeyondDynamicRangeX} / ${DS.len} : ${100*DS.numBeyondDynamicRangeX / DS.len.toFloat}%.2f %%")
+      println(f"                ${DS.numBeyondDynamicRangeX} / ${DS.numberOfDataSamples} : ${100*DS.numBeyondDynamicRangeX / DS.numberOfDataSamples.toFloat}%.2f %%")
       println("Number of Y pol amplitude beyond dynamic range " + DS.numBeyondDynamicRangeY)
-      println(f"                ${DS.numBeyondDynamicRangeY} / ${DS.len} : ${100*DS.numBeyondDynamicRangeY / DS.len.toFloat}%.2f %%")
+      println(f"                ${DS.numBeyondDynamicRangeY} / ${DS.numberOfDataSamples} : ${100*DS.numBeyondDynamicRangeY / DS.numberOfDataSamples.toFloat}%.2f %%")
 
-      // if (DS.numBeyondDynamicRangeX > 0.5*DS.len || DS.numBeyondDynamicRangeY > 0.5*DS.len) {
+      // if (DS.numBeyondDynamicRangeX > 0.5*DS.numberOfDataSamples || DS.numBeyondDynamicRangeY > 0.5*DS.numberOfDataSamples) {
       //   println("try a smaller amplitude. good bye");
       //   return;
       // }
@@ -548,7 +551,7 @@ object SETISim {
       //only add the public header to output byte stream.
 
       var mapper = new ObjectMapper();
-      var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
+      var dataOutputByteStream = new ByteArrayOutputStream(rawSimulatedDataByteStream.size());
 
       if (dataClass == "test" || dataClass == "basictest") {
         //use the unlabeled public header -- this JUST provides a UUID for the data file
@@ -601,7 +604,7 @@ object SETISim {
           dashdb.drift(DS.drift);
           dashdb.driftRateDerivative(DS.driftRateDerivate);
           dashdb.jitter(DS.jitter);
-          dashdb.len(DS.len);
+          dashdb.len(DS.numberOfDataSamples);
           dashdb.ampModType(DS.ampModType);
           dashdb.ampModPeriod(DS.ampModPeriod);
           dashdb.ampModDuty(DS.ampModDuty);

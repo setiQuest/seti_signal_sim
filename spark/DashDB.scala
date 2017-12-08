@@ -44,7 +44,10 @@ class DashDB (jdbc_url: String, user: String, pass: String, databasename: String
   // date_created TIMESTAMP(10),
   // container VARCHAR(128),
   // objectname VARCHAR(128),
-  // etag VARCHAR(256)
+  // etag VARCHAR(256),
+  // noise_file_uuid VARCHAR(128),
+  // signal_power DECIMAL(31,10),
+  // noise_power DECIMAL(31, 10),
   // );
 
   for(i <- 1 to tableSize-1) {
@@ -163,6 +166,13 @@ class DashDB (jdbc_url: String, user: String, pass: String, databasename: String
     insertDataStatement.setString(27, noise_file_uuid);
   }
 
+  def signalPower(signalPower: Double) {
+    insertDataStatement.setDouble(28, signalPower);
+  }
+
+  def noisePower(noisePower: Double) {
+    insertDataStatement.setDouble(29, noisePower);
+  }
 
   //needed data retrieval queries
   def get_sun_noise(num: Int) : ResultSet = {

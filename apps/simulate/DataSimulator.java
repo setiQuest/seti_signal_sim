@@ -36,7 +36,7 @@ public class DataSimulator
 	public double drift = 0;
 	public double driftRateDerivate = 0;
 	public double jitter = 0;
-	public int len = 0;
+	public int numberOfDataSamples = 0;
 	public	String ampModType = "none";
 	public double ampModPeriod = 0;
 	public double ampModDuty = 0;
@@ -60,6 +60,8 @@ public class DataSimulator
 	public double ampPhaseSquare = 0;
 	public double ampPhaseSine = 0;
 	public double signalAmpFactor = 0;
+	public double signalPower = 0;
+	public double noisePower = 0;
 	
 	public int numBeyondDynamicRangeX = 0;
 	public int numBeyondDynamicRangeY = 0;
@@ -132,6 +134,13 @@ public class DataSimulator
  		//we insert the private and public headers into the output data file. 
 		ObjectMapper mapper = new ObjectMapper();
 
+		ByteArrayOutputStream dataOS = new ByteArrayOutputStream(2*outputLength);
+
+		//now do the simulation, inserting the data into the FOS
+ 		mySimulator.run(dataOS);
+
+ 		mySimulator.updatePrivateHeader();
+
 		String json = mapper.writeValueAsString(mySimulator.privateHeader);
 		System.out.println(json);
 		FOS.write(mapper.writeValueAsBytes(mySimulator.privateHeader));
@@ -142,11 +151,12 @@ public class DataSimulator
 		FOS.write(mapper.writeValueAsBytes(mySimulator.labeledPublicHeader));
 		FOS.write('\n');
 
-		//now do the simulation, inserting the data into the FOS
- 		mySimulator.run(FOS);
+		dataOS.writeTo(FOS);		
 
 		// close output file
 		FOS.close();
+
+		dataOS.close();
 
 		//close noise generator
 		noiseGen.close();
@@ -164,7 +174,7 @@ public class DataSimulator
 		drift = adrift;
 		driftRateDerivate = adriftRateDerivate;
 		jitter = ajitter;
-		len = alen;
+		numberOfDataSamples = alen;
 		ampModType = aampModType;
 		ampModPeriod = aampModPeriod;
 		ampModDuty = aampModDuty;
@@ -174,6 +184,12 @@ public class DataSimulator
 		rand = arand;
 
 		reset();
+	}
+
+	public void updatePrivateHeader() throws Exception
+	{
+		privateHeader.put("total_signal_power", signalPower);
+		privateHeader.put("total_noise_power", noisePower);
 	}
 
   public void reset() throws Exception
@@ -248,7 +264,7 @@ public class DataSimulator
 		privateHeader.put("drift",drift);
 		privateHeader.put("drift_rate_derivative",driftRateDerivate);
 		privateHeader.put("jitter",jitter);
-		privateHeader.put("len",len);
+		privateHeader.put("len",numberOfDataSamples);
 		privateHeader.put("amp_modulation_type", ampModType);
 		privateHeader.put("amp_modulation_period", ampModPeriod);
 		privateHeader.put("amp_modulation_duty", ampModDuty);
@@ -272,6 +288,8 @@ public class DataSimulator
 		unlabeledPublicHeader = new HashMap<String, Object>();
 		unlabeledPublicHeader.put("uuid", uuid);
 
+		signalPower = 0;
+		noisePower = 0;
 
 	}
 
@@ -286,7 +304,7 @@ public class DataSimulator
 
 
 		// loop over samples
-		for (int i = 0; i < len; ++i)
+		for (int i = 0; i < numberOfDataSamples; ++i)
 		{
 
 			// this creates sidebands in the spectrogram and need to
@@ -327,10 +345,14 @@ public class DataSimulator
 
 			double Xval = dNoiseX;
 			double Yval = dNoiseY;
+
+			noisePower += dNoiseX*dNoiseX + dNoiseY*dNoiseY;
+
 			//double Xvald = Xval;
 			//double Yvald = Yval;
 
 			if (ampOn) {
+				signalPower += (signalX * signalAmpFactor)*(signalX * signalAmpFactor) + (signalY * signalAmpFactor) * (signalY * signalAmpFactor);
 				Xval += signalX * signalAmpFactor;
 				Yval += signalY * signalAmpFactor	;
 			}
