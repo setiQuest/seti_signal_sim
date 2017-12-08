@@ -12,7 +12,7 @@ import glob
 import os
 
 
-usagestring = 'convert_all_to_png.py -o <outdir> -l <logOpt> -s <skip> -m <spectrogram height factor>'
+usagestring = 'convert_all_to_png.py -i <indir> -o <outdir> -l <logOpt> -s <skip> -m <spectrogram height factor>'
 
 
 def localLog(spectrogram, logOpt):
