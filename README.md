@@ -9,8 +9,11 @@ Find links to install SBT on Mac, Linux and Windows here: http://www.scala-sbt.o
 This one command will download the dependecies, compile the code and package it into an
 uber jar file. 
 
-However, before you do, you should create the file `resources/simulation.properties`. There is a `.template` file
-in the `resources` folder, which will tell you which fields you need to create.
+However, before you do, **you must create the file `resources/simulation.properties`**. There is a `.template` file
+in the `resources` folder, which will tell you which fields you need to create. 
+If you are running the simulations in `local` mode, you will not need to fill in the 
+values. The `simulations.properties` file will be packaged into the
+resulting `.jar` file and opened during run time. 
 
 ```
 sbt clean assembly
@@ -78,14 +81,15 @@ or
 
 Invocation:
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> spark <number_of_partitions> <number_of_simulations> <signal_class> <noise>
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <location> <number_of_partitions> <number_of_simulations> <signal_class> <noise>
 ```
 
  * `<data_class>` one of `training`, `test`, `basic`, `basictest`, `private`
- * `<number_of_partitions>` number of spark executors to use
+ * `<location>` either `local`, `serial` or `spark`. 
+ * `<number_of_partitions>` number of spark partitions to use IF `location=spark`, otherwise DO NOT INCLUDE in command
  * `<number_of_simulations>` number of signals to simulate
  * `<signal_class>`
- * `<noise>` one of `gaussian`, `sunnoise` or the name of a file
+ * `<noise>` one of `gaussian`, `sunnoise` or the name of a file. If `sunnoise`, will attempt to access dashDB instance.
 
 Example - generate 1,000 test narrowband signals with sun noise
 ```
