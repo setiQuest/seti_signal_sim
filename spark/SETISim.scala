@@ -490,10 +490,15 @@ object SETISim {
       }
     }
 
-    val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
-    val dashdb: DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), dashdb_database_name)  
-    //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
-    
+    var objstore: OpenStack4jObjectStore = null
+    var dashdb: DashDB = null
+
+    if (!local) {
+      objstore = new OpenStack4jObjectStore(props, configurationName)
+      dashdb = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"), dashdb_database_name)  
+      //val paramGen:ParameterGenerator = new ParameterGenerator(paramGenName)
+    }
+
     val seed: Long = System.currentTimeMillis()
     var randGen = new Random(seed)
 
