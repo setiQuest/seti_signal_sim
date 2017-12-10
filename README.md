@@ -81,20 +81,25 @@ or
 
 Invocation:
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <location> <number_of_partitions> <number_of_simulations> <signal_class> <noise>
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <location> <number_of_partitions> <number_of_simulations> <signal_class> <noise> <SNR>
+
 ```
 
  * `<data_class>` one of `training`, `test`, `basic`, `basictest`, `private`
  * `<location>` either `local`, `serial` or `spark`. 
- * `<number_of_partitions>` number of spark partitions to use IF `location=spark`, otherwise DO NOT INCLUDE in command
+ * `<number_of_partitions>` number of spark partitions to use IF `location=spark`, otherwise DO NOT INCLUDE this value in command
  * `<number_of_simulations>` number of signals to simulate
  * `<signal_class>`
  * `<noise>` one of `gaussian`, `sunnoise` or the name of a file. If `sunnoise`, will attempt to access dashDB instance.
+ * `<SNR>` If `location=local`, then one can specify a fixed SNR value to use for all simulations. 
 
 Example - generate 1,000 test narrowband signals with sun noise
 ```
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 1000 narrowband sunnnoise
 ```
+
+
+
 
 
 Example: 

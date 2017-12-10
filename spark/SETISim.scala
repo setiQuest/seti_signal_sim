@@ -459,7 +459,7 @@ object SETISim {
     sc.stop()
   }
 
-  def serialSim(nSim: Int, paramGenName: String, noiseName: String, local: Boolean, dataClass: String) {
+  def serialSim(nSim: Int, paramGenName: String, noiseName: String, local: Boolean, dataClass: String, signalAmp: Option[Double]) {
 
     val props = new Properties
     var simulatedSignalContainer : String = ""
@@ -506,7 +506,9 @@ object SETISim {
     for (i <- 0 until nSim) {
       
       var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
+      sigdef.SNR = signalAmp.getOrElse(sigdef.SNR)
       
+
       val digest:MessageDigest = MessageDigest.getInstance("MD5");  //I could probably do this outside of the loop and call reset, but I don't want to test this right now.
 
       var noiseGen : NoiseGenerator = null
@@ -745,12 +747,16 @@ object SETISim {
       case "serial" => {
         val nSims:Int = args(2).toInt
         val noiseName:String = args(4)
-        serialSim(nSims, args(3), noiseName, false, dataClass)
+        serialSim(nSims, args(3), noiseName, false, dataClass, None)
       }
       case "local" => {
         val nSims:Int = args(2).toInt
         val noiseName:String = args(4)
-        serialSim(nSims, args(3), noiseName, true, dataClass)
+        var signalAmp:Option[Double] = None;
+        if (args.length > 5) {
+          signalAmp = Some(args(5).toDouble)
+        }
+        serialSim(nSims, args(3), noiseName, true, dataClass, signalAmp)
       }
     }
 
