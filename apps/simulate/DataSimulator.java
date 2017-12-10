@@ -60,8 +60,8 @@ public class DataSimulator
 	public double ampPhaseSquare = 0;
 	public double ampPhaseSine = 0;
 	public double signalAmpFactor = 0;
-	public double signalPower = 0;
-	public double noisePower = 0;
+	public double signalEnergy = 0;
+	public double noiseEnergy = 0;
 	
 	public int numBeyondDynamicRangeX = 0;
 	public int numBeyondDynamicRangeY = 0;
@@ -188,8 +188,8 @@ public class DataSimulator
 
 	public void updatePrivateHeader() throws Exception
 	{
-		privateHeader.put("total_signal_power", signalPower);
-		privateHeader.put("total_noise_power", noisePower);
+		privateHeader.put("total_signal_energy", signalEnergy);
+		privateHeader.put("total_noise_energy", noiseEnergy);
 	}
 
   public void reset() throws Exception
@@ -288,8 +288,8 @@ public class DataSimulator
 		unlabeledPublicHeader = new HashMap<String, Object>();
 		unlabeledPublicHeader.put("uuid", uuid);
 
-		signalPower = 0;
-		noisePower = 0;
+		signalEnergy = 0;
+		noiseEnergy = 0;
 
 	}
 
@@ -346,13 +346,13 @@ public class DataSimulator
 			double Xval = dNoiseX;
 			double Yval = dNoiseY;
 
-			noisePower += dNoiseX*dNoiseX + dNoiseY*dNoiseY;
+			noiseEnergy += dNoiseX*dNoiseX + dNoiseY*dNoiseY;
 
 			//double Xvald = Xval;
 			//double Yvald = Yval;
 
 			if (ampOn) {
-				signalPower += (signalX * signalAmpFactor)*(signalX * signalAmpFactor) + (signalY * signalAmpFactor) * (signalY * signalAmpFactor);
+				signalEnergy += (signalX * signalAmpFactor)*(signalX * signalAmpFactor) + (signalY * signalAmpFactor) * (signalY * signalAmpFactor);
 				Xval += signalX * signalAmpFactor;
 				Yval += signalY * signalAmpFactor	;
 			}
