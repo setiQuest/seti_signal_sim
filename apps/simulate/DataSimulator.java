@@ -307,6 +307,10 @@ public class DataSimulator
 		for (int i = 0; i < numberOfDataSamples; ++i)
 		{
 
+			if (signalClass.equals("noise")) {
+				ampOn = false;
+			}
+
 			// this creates sidebands in the spectrogram and need to
 			// make sure to have a large enough periodicity so that sidebands are not observed
 			// 
