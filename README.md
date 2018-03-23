@@ -1,5 +1,48 @@
 # SETI Simulation Signals
 
+This code generates various types of complex-valued time-series signals that are similar to signals observed at the 
+Allen Telescope Array, operated by the SETI Instititue. 
+
+This code is in very poor shape! It's certainy research-level code and there are no guarantees. Please contact the
+authers or submit Issues if you have problems. This is not consumer-friendly code and we do not have unit tests
+to ensure full functionality. We know that it works on our developer's systems. 
+
+You'll at least need to have a recent Java SDK installed. You *should* be able to complile the core Java code with just Java. 
+However, it is recommended to also install the Scala Build Tool (SBT), which should make the usage easier. Why did I mix
+Scala in with Java? Simply because I wanted to learn a bit about Scala and SBT. It is what it is. 
+
+The output simulation files (named `<uuid>.dat`) are simple: A JSON header, followed by a newline (`\n`), an optional 2nd JSON header followed by a newline, and then some number of bytes
+that hold the complex-valued time-series data. Each time-step comes in 2-byte pairs where the first byte is the real value
+and the second byte is the imaginary value. These data files can be read with the [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti). That python package can also be used to do some basic signal processing and caclulate spectrogram.
+
+
+### Operation Overview 
+
+There are three "modes" under which this code can be run: spark, serial or local. If you're just starting out to use this code, you should first get this working in "local" mode and move on from there. 
+
+#### Spark mode
+
+In `spark` mode, the code should be running on a Spark cluster. An RDD is created and `.map` functions are used to farm out the 
+simulations to the executor nodes in order to parallelize the task. The `<uuid>.dat` simulation files are stored in an OpenStack Swift Object Store. The parameters that control the simulation are stored separately in an IBM DB2 database. Credentials for DB2 should be set in the `resources/simulation.properties` file. Credentials and container names for Object Storage should be set in the same file. See the `example_spark_submit.sh` script.  
+
+
+#### Serial mode
+In `serial` mode, Spark is not used and all simulations are run in one thread. The data are still stored into the external
+Object Storage and DB2 systems. 
+
+
+#### Local mode
+
+In  `local` mode, neither Spark nor the Object Store and DB2 systems are used. All data are stored locally. A 2nd, "private", 
+JSON header is included in the output `<uuid>.dat` file. Despite not using Object Storage or DB2, you will still need a `resources` file
+because the code tries to open it anyways (another casualty of "research-level" coding and motivation to fix all things). 
+Of course, you don't need to set any values to the credentials, just `cp resources/simulation.properties.template resources/simulation.properties`.  The simulations are performed in one local thread and stored to the local file system. 
+
+Also, to note: the `<SNR>` setting (see below) is only available in the `local` mode, as I didn't have time to add it to the `serial` 
+and `spark` modes and test it out. 
+
+
+
 ## Compile
 
 ### Using SBT
@@ -24,9 +67,9 @@ sbt clean assembly
 Note, without using SBT, these instructions will not create an uber jar and it's unlikely 
 this will run on a spark cluster (the dependecies must be found on all worker nodes). 
 
-However, for local development this should work. 
+However, if you really just want to use Java only, this might work. 
 
-Also, the old way requires that all dependency libraries to be downloaded and installed in the "dependcies"
+Also, the old way requires that all dependency libraries to be downloaded and installed in the "dependencies"
 folder. As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
 
 
@@ -51,74 +94,99 @@ jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
 If you've used `sbt` to package the code, the resulting jar file is 
 `target/scala-x.YY/signalsimulation-assembly-8.0.jar`
 
-This main class for this jar file, however, is now in [spark/SETISim.scala](spark/SETISim.scala)
+The main class for this jar file, however, is now [spark/SETISim.scala](spark/SETISim.scala)
 
 ```
 java -jar <jar file> <parameters>
 ```
 
-We now use the ParameterGenerator and related classes to define the parameters of the simulation. 
-In the example below, the `narrowband` option tells the ParameterGenerator to choose a particular
-class and the set of simulation parameters that his definied within its code.
-
-The noise type is determined for the final option. In this case `gaussian` tells the program
-to use the GaussianNoise.java class to generate noise.
 
 ##### Properties
 
 You must create the file `resources/simulation.properties`. A template with all of the necessary
-property values is in the repository. You should `cp resources/simulation.properties.template resources/simulation.properties` and then fill in the values. 
+property values is in the repository. You should `cp resources/simulation.properties.template resources/simulation.properties` and then fill in the values if you are planning to store the output data files in OpenStack Object Storage and IBM DB2 tables. 
 
-##### Example
+##### First, an example
+
+In the example below, the `narrowband` parameter tells the SignalDefFactory to simulate that signal
+class. The range of simulation parameters for each class is hard-coded in the [classes here](spark/signaldef). (This is less than ideal coding practice, but worked for our purposed.)
+
+The `training` option tells the program to put the signal class in the public header and specifies 
+a particular range of signal amplitudes to use (the `basic` option would use a larger range of amplitudes). 
+
+Two (2) simulations will be peformed. 
+
+The noise will be `gaussian`, defined by the GaussianNoise.java class.  (You'll almost always use this as your 
+noise model unless you have a data file that can be read with the FileNoise class, in which case 
+you can pass in the name of the file that holds that data.)
 
 ```
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 2 narrowband gaussian
 ```
 
-or
 
-#### Generate signal data files and metadata 
 
-Invocation:
-```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <location> <number_of_partitions> <number_of_simulations> <signal_class> <noise> <SNR>
+#### Full Set of Parameters
+
 
 ```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <mode> <number_of_partitions> <number_of_simulations> <signal_class> <noise> <SNR>
 
- * `<data_class>` one of `training`, `test`, `basic`, `basictest`, `private`
- * `<location>` either `local`, `serial` or `spark`. 
- * `<number_of_partitions>` number of spark partitions to use IF `location=spark`, otherwise DO NOT INCLUDE this value in command
+```
+
+ * `<data_class>` one of `training`, `test`, `basic`, `basictest`, `private`. You should probably just use `training`, `basic` or `test`. In `test` mode, the output data files do not contain the signal class in the first **public** header (though the class name does exist in the second **private** header when in `local` mode.) Read the code carefully and do some tests to figure out what the other options do. :/  
+ * `<mode>` either `local`, `serial` or `spark`, as explained above.
+ * `<number_of_partitions>` number of Spark partitions to use IF `mode=spark`, otherwise DO NOT INCLUDE this value in command
  * `<number_of_simulations>` number of signals to simulate
- * `<signal_class>`
- * `<noise>` one of `gaussian`, `sunnoise` or the name of a file. If `sunnoise`, will attempt to access dashDB instance.
- * `<SNR>` If `location=local`, then one can specify a fixed SNR value to use for all simulations. 
+ * `<signal_class>` See [SignalDefFactory.scala](spark/signaldef/SignalDefFactory.scala) for list of available classes.
+ * `<noise>` one of `gaussian`, `sunnoise` or the path to a file. If `sunnoise`, will attempt to access Object Storage instance for data file.
+ * `<SNR>` If `mode=local`, then one can specify a fixed SNR value to use for all simulations.  This ONLY works in `local` mode. If this is not specified, a range of SNR values will be simulated. 
+```
 
-Example - generate 1,000 test narrowband signals with sun noise
+
+##### Examples
+
+###### Spark Mode
+
+Generate 1,000 test narrowband signals with sun noise on spark with 20 separate partitions.
+
 ```
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 1000 narrowband sunnnoise
 ```
 
+The `sunnoise` is a special case. We had noise files that were created by observing the Sun for a number of hours. These
+noise files were stored in Object Storage and retrieved at run time. Unless you work at the SETI Instutite, you probably won't 
+use this option!
 
 
-
-
-Example: 
-```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 42 8 narrowband gaussian
-```
-
-
+Generate 1,000 training narrowband signals with gaussian white nose on spark with 20 separate partitions.
 
 
 ```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar private spark 20 1000 narrowband sunnnoise
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 20 1000 narrowband gaussian
+```
+
+###### Local Mode
+
+Generate 10 "basic" narrowband simulations, all with a fixed SNR of 0.15
+
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar basic local 10 narrowband gaussian 0.15
+```
+
+Generate 10 "training" narrowband simulations with a range of SNR values.
+ 
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training local 10 narrowband gaussian
+```
+
+Generate 10 "training" squiggle simulations with a range of SNR values.
+ 
+```
+java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training local 10 squiggle gaussian
 ```
 
 
-Note, you can't use sunnoise data in local mode (didn't write the code to do this). But, you can use a sunnoise file, if you have one. 
-```
-java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar basic local 10 narrowband gaussian
-```
 
 #### Submitting to IBM Spark Cluster
 
@@ -140,12 +208,7 @@ java apps.simulate.DataSimulator <all individual parameters>
 java apps.simulate.DataSimulator 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
 ```
 
-
-#### Unpackaged .class file
-
-```
-java apps.simulate.DataSimulator 13 "" 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
-```
+You'll need to read the DataSimulator code class to decipher all of these values. :)
 
 #### Manual jar file
 
@@ -155,7 +218,7 @@ Alternatively
 java -jar  setisimulator.jar 13 "" 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
 ```
 
-### Description of above simulation
+##### Description of above simulation
 
 To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
 over-sampled frequencies removed (aka, a waterfall plot), the output length of data is a product of these two numbers
@@ -168,9 +231,9 @@ amplitude modulation (in the case of a `sine` modulation, the duty cycle value i
 
 ## Create Spectrogram 
 
-The output file contains two headers, all contained within the first two lines. They are in JSON format. The
-first header is called the "private" header, and the second header is the "public" header. When these data
-are published, the information from the private header will be saved to a database and removed from the simulation
+The output file contains one or two headers, all contained within the first two lines. They are in JSON format. The
+first header is called the "public" header, and the second header is the "private" header. In spark or serial mode, 
+the information from the private header will be saved to a database and removed from the simulation
 file and the public header will remain. 
 
 ### With Python
