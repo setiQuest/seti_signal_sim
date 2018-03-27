@@ -12,22 +12,22 @@ This code is in relatively poor shape. One may be inclined to call it "research-
 
 This code was developed on a Mac with JDK SE version 8 and and Scala Build Tool (SBT) version 0.13.
 
-### Operation Overview 
+## Operation Overview 
 
 There are three "modes" under which this code can be run: `spark`, `serial` or `local`. If you're just starting to use this code, you should first get this working in `local` mode and move on from there. 
 
-#### Spark mode
+### Spark mode
 
 In `spark` mode, the code should be running on a Spark cluster. An RDD is created and `.map` functions are used to farm out the 
 simulations to the executor nodes in order to parallelize the task. The `<uuid>.dat` simulation files are stored in an OpenStack Swift Object Store. The parameters that control the simulation are stored separately in an IBM DB2 database. Credentials for DB2 should be set in the `resources/simulation.properties` file. Credentials and container names for Object Storage should be set in the same file. See the `example_spark_submit.sh` script.  
 
 
-#### Serial mode
+### Serial mode
 In `serial` mode, Spark is not used and all simulations are run in one thread. The data are still stored into the external
 Object Storage and DB2 systems. 
 
 
-#### Local mode
+### Local mode
 
 In  `local` mode, neither Spark nor the Object Store and DB2 systems are used. All data are stored locally. A second, "private", 
 JSON header is included in the output `<uuid>.dat` file. Despite not using Object Storage or DB2, you will still need a `resources` file
@@ -59,11 +59,11 @@ sbt clean assembly
 
 #### OLD way, no SBT
 
-Note, these instructions will not create an uber jar and just compiles the core .java class files.
+Note, these instructions will not create an uber jar and just compiles the core .java classes.
 
-These instructions are here in order to support the original authors of the core .java files. 
+These instructions are here in order to support the original authors of the core .java code. 
 
-These instructions encourage all dependency libraries to be downloaded and installed in the "dependencies"
+These instructions encourage all dependency libraries to be downloaded and installed in the `dependencies`
 folder. The `setup.sh` script adds that folder to the CLASSPATH envar.
 As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
 
@@ -85,7 +85,7 @@ jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
 ## Run
 
 If you've used `sbt` to package the code, the resulting jar file is 
-`target/scala-x.YY/signalsimulation-assembly-8.0.jar`, where `x` and `YY` will depend on your 
+`target/scala-2.11/signalsimulation-assembly-8.0.jar`.
 
 The main class for this jar file is [spark/SETISim.scala](spark/SETISim.scala)
 
@@ -93,7 +93,7 @@ The main class for this jar file is [spark/SETISim.scala](spark/SETISim.scala)
 java -jar <jar file> <parameters>
 ```
 
-##### A simple example
+#### A simple example
 
 In the example below, a `narrowband` signal class is simulated. The range of simulation parameters for each class is hard-coded in the [classes here](spark/signaldef). (This is less than ideal coding practice, but worked for our purposes.)
 
@@ -111,7 +111,7 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training serial 2
 ```
 
 
-#### Full Set of Parameters
+### Full Set of Parameters
 
 The set of parameters that you can use are briefly described below.   
 
@@ -131,7 +131,7 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <mod
 
 Note that SNR is defined as the amplitude of the signal relative to the standard deviation of the noise amplitude. For gaussian white noise, that amplitude is fixed at a value of 13.0 for both the real and imaginary components. The signal amplitude is the amplitude of the sine wave that is added to the white noise at each time sample. You should use SNRs in the range from 0.05 to 0.75, depending on the signal class. 
 
-###### Available Signal Classes.
+#### Available Signal Classes.
 
 The different signal classes that [have been defined]((spark/signaldef/SignalDefFactory.scala) so far are:
 
@@ -150,9 +150,9 @@ The different signal classes that [have been defined]((spark/signaldef/SignalDef
 
 
 
-##### Examples
+#### Examples
 
-###### Spark Mode
+##### Spark Mode
 
 The following examples assume the code is running on a system with Apache Spark 2.0 or greater installed. 
 
@@ -175,7 +175,7 @@ Generate 1,000 training narrowband signals with gaussian white noise, and run on
 java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar training spark 20 1000 narrowband gaussian
 ```
 
-###### Local Mode
+##### Local Mode
 
 Generate 10 "basic" narrowband simulations, all with a fixed signal amplitude of 0.15
 
@@ -215,7 +215,7 @@ and *not* the `spark-submit` script included in the Apache Spark distribution.
 ```
 
 
-#### Running without compiling with SBT
+### Running without compiling with SBT
 
 If you did not package the compiled .class files into a jar file, you can call the 
 main class directly. 
@@ -295,6 +295,8 @@ from PIL import Image, ImageFilter
 im = Image.open('wf1.pgm')
 im.show()
 ```
+
+## Etc.
 
 #### IBM DB2 table strucuture 
 
