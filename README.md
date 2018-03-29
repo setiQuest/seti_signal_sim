@@ -1,14 +1,14 @@
 # SETI Simulation Signals
 
 This code generates various classes of complex-valued time-series signals that are similar to signals observed at the 
-Allen Telescope Array, operated by the SETI Instititue. You can see what some of these signal classes look like by [reading this blog post](https://medium.com/ibm-watson-data-lab/using-artificial-intelligence-to-search-for-extraterrestrial-intelligence-ec19169e01af). We have also [published a paper](http://xxx.lanl.gov/abs/1803.08624) that contains information on the analytical model of these signals. 
+Allen Telescope Array, operated by the SETI Instititue. You can see what some of these signal classes look like by [reading this blog post](https://medium.com/ibm-watson-data-lab/using-artificial-intelligence-to-search-for-extraterrestrial-intelligence-ec19169e01af). We have also [published a paper](http://xxx.lanl.gov/abs/1803.08624) that contains information on the analytical model of these signals, along with work done to use convolutional neural networks to identify the different signal classes from their spectrogram representations. 
 
 The output simulation files (named `<uuid>.dat`) are simple: A JSON header, followed by a newline (`\n`), an optional 2nd JSON header followed by a newline, and then some number of bytes
 that hold the complex-valued time-series data. Each time-step comes in 2-byte pairs where the first byte is the real value
 and the second byte is the imaginary value. These data files can be read with the [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti). That python package can also be used to do some basic signal processing and caclulate spectrogram.
 
 This code is in relatively poor shape. One may be inclined to call it "research-level code" (i.e. not consumer-friendly and no unit tests) and there are no guarantees. We really only know that it works on our local systems and an external Apache Spark (2.1.0) cluster. (Also, please note that we are not expert programmers and have added Scala code as a learning exercise.) 
-*Please do not hesitate to contact the authers, submit Issues, or PRs if you have problems!* 
+*Please do not hesitate to contact the authors, submit Issues, or PRs if you have problems!* 
 
 This code was developed on a Mac with JDK SE version 8 and and Scala Build Tool (SBT) version 0.13.
 
@@ -57,30 +57,15 @@ resulting `.jar` file and opened during run time.
 sbt clean assembly
 ```
 
-#### OLD way, no SBT
 
-Note, these instructions will not create an uber jar and just compiles the core .java classes.
-
-These instructions are here in order to support the original authors of the core .java code. 
-
-These instructions encourage all dependency libraries to be downloaded and installed in the `dependencies`
-folder. The `setup.sh` script adds that folder to the CLASSPATH envar.
-As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
-
-
-##### Compile
-
-```
-source setup.sh   #adds dependencies to CLASSPATH
-javac apps/simulate/*.java
-```
-
-##### Build Jar (optional)
-
-```
-jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
-```
-
+The `build.sbt` file specifies the Scala and Spark versions for which the code is 
+compiled, which are 2.11.8 and 2.1.0, respectively. Of course, change these values 
+as needed. If you do not have access to a Spark cluster and only plan to run these 
+in `local`, then you don't need to modify the Spark version. Note that the `build.sbt` file
+will not download the Apache Hadoop or Spark libraries (by using the 
+[`provided` option](build.sbt#L42-L44)). It assumes the path to those `.jar`s will be
+provided by the system. Again, if you're running in `local` mode, then you don't need
+to worry about this. 
 
 ## Run
 
@@ -215,39 +200,6 @@ and *not* the `spark-submit` script included in the Apache Spark distribution.
 ```
 
 
-### Running without compiling with SBT
-
-If you did not package the compiled .class files into a jar file, you can call the 
-main class directly. 
-
-```
-source setup.sh  
-java apps.simulate.DataSimulator <all individual parameters>
-
-//example
-java apps.simulate.DataSimulator 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
-```
-
-You'll need to read the DataSimulator code class to decipher all of these values. :)
-
-##### Manual jar file
-
-Alternatively 
-
-```
-java -jar  setisimulator.jar 13 "" 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
-```
-
-##### Description of above simulation
-
-To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
-over-sampled frequencies removed (aka, a waterfall plot), the output length of data is a product of these two numbers
-129 * 6144 = 792576.
-
-Also, in this example, I've added a square wave amplitude modulation with a periodicity of 61440
-samples (equivalent to 10 raster lines) with a duty cycle of 0.5.  One can also add a sine wave
-amplitude modulation (in the case of a `sine` modulation, the duty cycle value is ignored.)
-
 
 ## Create Spectrogram 
 
@@ -258,8 +210,20 @@ file and the public header will remain. In `test` mode, the signal class name wi
 
 ### With `ibmseti`
 
+This is the easiest and recommended way to read and analyze these data.
+
 The [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti) can read these simulation data files and calculate spectrogram. 
 
+### Batch Convert to Spectrogram
+
+Before the `ibmseti` package supported these file types, some python scripts were added to this repository that 
+utilize numpy, scipy and matplotlib to generate spectrogram. These are found in the `python` directory. The `convert_all_to_png.py`
+script may be helpful to quickly convert all of your `.dat` files to spectrogram
+
+At minimum, you just need to specify in the directory where the `.dat` files are located and an output directory for the `.png` files. 
+```
+> ./convert_all_to_png -i <input dir> -o <output dir>
+```
 
 ### With SETI Command Line tools
 
@@ -274,9 +238,6 @@ only one JSON header in the data, then `tail -n +2` to skip just one header.
 len=6144  
 tail -n +3 test.data | sqsample -l $len | sqwindow -l $len | sqfft -l $len | sqabs -l $len | sqreal -l $len | sqpnm -c $len -r 32 -p > wf1.pgm
 ```
-
-
-
 
 #### View PGM file
 
@@ -296,9 +257,85 @@ im = Image.open('wf1.pgm')
 im.show()
 ```
 
+## Modifying The Signals
+
+You may come to a point where you'd like to modify the output signals. Unfortunatley, the signal definitions are somewhat
+hard-coded in the `spark/signaldef` folder. Ideally, signal definitions would have been written as simple documents and 
+loaded at run time. But assuming that you don't want to do the work to modify the code that significantly, here are the
+few things you're most likely to be interested in:
+
+  * Signal Length: You can shorten (or lengthen) the signal length for all signals by modifying [this line in the SignalDef base class](spark/signaldef/SignalDef.scala#L15).
+  * Signal Amplitude Range: Each signal class has its own specified range of signal amplitude (SNR). So, you'll have to change each signal class separately. For example, for `narrowband` signals, you can change the [range of signal amplitudes here](spark/signaldef/NarrowBand.scala#L18). 
+  * Similar to the signal amplitude, for each class you can modify the various properties, such as the `drift`, `deltaPhiRad` (initial starting frequency), `ampModDuty` (duty factor for amplitude modulation), `ampModPeriod` (periodicity of amplitude modulation), `ampModType` (amplitude modulation type: either square or sine), and `sigmaSquiggle` (amplitude of amount of "squiggle" in the signal). 
+
+
+
 ## Etc.
 
-#### IBM DB2 table strucuture 
+The documentation below includes instructions to compile and run just the `.java` code.  
+Also, if running in `spark` mode, the necessary structure for the IBM DB2 table is below.
+
+
+### Just Java
+
+These instructions are here in order to support the original authors of the core `.java` code. This will compile
+the just the `.java` classes and let you run them locally.
+
+These instructions encourage all dependency libraries to be downloaded and installed in the `dependencies`
+folder. The `setup.sh` script adds that folder to the CLASSPATH envar.
+As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
+
+
+#### Compile
+
+```
+source setup.sh   #adds dependencies to CLASSPATH
+javac apps/simulate/*.java
+```
+
+##### Build Jar (optional)
+
+```
+jar cfm setisimulator.jar MANIFEST.MF apps/simulate/*.class
+```
+
+
+#### Run
+
+
+```
+source setup.sh  
+java apps.simulate.DataSimulator <all individual parameters>
+```
+
+For example,
+
+```
+java apps.simulate.DataSimulator 13 "" 100 0.4 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+```
+
+##### From Jar
+
+Alternatively 
+
+```
+java -jar  setisimulator.jar 13 "" 100 0.3 -0.0001 -0.0002 0.0001 792576 square 61440 .5 squiggle_pulsed test.data
+```
+
+###### Description of above simulation
+
+To get 129 raster lines with 6144 frequency bins, which is the size of an archive-compamp file with the
+over-sampled frequencies removed (aka, a waterfall plot), the output length of data is a product of these two numbers
+129 * 6144 = 792576.
+
+Also, in this example, I've added a square wave amplitude modulation with a periodicity of 61440
+samples (equivalent to 10 raster lines) with a duty cycle of 0.5.  One can also add a sine wave
+amplitude modulation (in the case of a `sine` modulation, the duty cycle value is ignored.)
+
+Most likely you'll need to read the DataSimulator code class to decipher all of these values. :)
+
+
+### IBM DB2 table strucuture 
 
 When running in either `spark` or `serial` mode, the code expects the existence of an IBM DB2 database table with the following 
 structure. 
