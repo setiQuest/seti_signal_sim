@@ -281,8 +281,8 @@ Also, if running in `spark` mode, the necessary structure for the IBM DB2 table 
 These instructions are here in order to support the original authors of the core `.java` code. This will compile
 the just the `.java` classes and let you run them locally.
 
-These instructions encourage all dependency libraries to be downloaded and installed in the `dependencies`
-folder. The `setup.sh` script adds that folder to the CLASSPATH envar.
+The `setup.sh` script adds that folder to the CLASSPATH envar, allowing for external `.jar` dependencies to be 
+included in that directory, manually.
 As of this writing, the java code is only dependent upon the Jackson tools for generating JSON. 
 
 
