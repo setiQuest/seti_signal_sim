@@ -17,6 +17,7 @@ def get_spectrogram_data(data, shape=(32,6144)):
     complex_data = np.frombuffer(simdata, dtype='i1').astype(np.float32).view(np.complex64)
     #complex_data = np.fromfile(ff, dtype='i1').astype(np.float32).view(np.complex64)
     complex_data = complex_data.reshape(*shape)
+    complex_data * np.hanning(complex_data.shape[1])
     cpfft = np.fft.fftshift( np.fft.fft(complex_data), 1)
     spectrogram = np.abs(cpfft)**2
     return spectrogram, header
@@ -31,6 +32,7 @@ def get_spectrogram(filename, shape=(32,6144), skip_lines = 1):
     #complex_data = np.frombuffer(raw_data, dtype='i1').astype(np.float32).view(np.complex64)
     complex_data = np.fromfile(ff, dtype='i1').astype(np.float32).view(np.complex64)
     complex_data = complex_data.reshape(*shape)
+    complex_data * np.hanning(complex_data.shape[1])
     cpfft = np.fft.fftshift( np.fft.fft(complex_data), 1)
     spectrogram = np.abs(cpfft)**2
     return spectrogram, header
