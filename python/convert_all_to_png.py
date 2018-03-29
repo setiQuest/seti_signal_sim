@@ -84,7 +84,7 @@ def main(argv):
       
       pngname,_ = os.path.splitext(os.path.basename(datfile))  
       pngname = pngname + '.png'
-      fig.savefig(os.path.join(outdir, pngname))
+      fig.savefig(os.path.join(outdir, pngname), bbox_inches='tight')
 
 
 if __name__ == "__main__":
