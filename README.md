@@ -7,19 +7,21 @@ The output simulation files (named `<uuid>.dat`) are simple: A JSON header, foll
 that hold the complex-valued time-series data. Each time-step comes in 2-byte pairs where the first byte is the real value
 and the second byte is the imaginary value. These data files can be read with the [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti). That python package can also be used to do some basic signal processing and caclulate spectrogram.
 
-This code is in relatively poor shape. One may be inclined to call it "research-level code" (i.e. not consumer-friendly and no unit tests) and there are no guarantees. We really only know that it works on our local systems and an external Apache Spark (2.1.0) cluster. (Also, please note that we are not expert programmers and have added Scala code as a learning exercise.) 
+This code is in relatively poor shape an was built in a somewhat ad-hoc manner. You could call it "research-level code" (i.e. not consumer-friendly and no unit tests) and there are no guarantees. We really only know that it works on our local systems and an external Apache Spark (2.1.0) cluster.  
 *Please do not hesitate to contact the authors, submit Issues, or PRs if you have problems!* 
 
 This code was developed on a Mac with JDK SE version 8 and and Scala Build Tool (SBT) version 0.13.
 
 ## Operation Overview 
 
-There are three "modes" under which this code can be run: `spark`, `serial` or `local`. If you're just starting to use this code, you should first get this working in `local` mode and move on from there. 
+Once compiled, the resulting executable `.jar` file will produce data files that contain a simulated SETI signal. This section first describes the different environments where you may run this executable. Then, brief instructions for compiling the code are described, followed by a mostly complete documentation of the different signal classes and parameters that can be passed to the executable to control the output simulations. 
+
+This code was built to execute on local development machines or Apache Spark clusters, and store the data either locally or in the cloud. There are three "modes" under which this code can be run: `spark`, `serial` or `local`. If you're just starting to use this code, you should first get this working in `local` mode and move on from there. 
 
 ### Spark mode
 
-In `spark` mode, the code should be running on a Spark cluster. An RDD is created and `.map` functions are used to farm out the 
-simulations to the executor nodes in order to parallelize the task. The `<uuid>.dat` simulation files are stored in an OpenStack Swift Object Store. The parameters that control the simulation are stored separately in an IBM DB2 database. Credentials for DB2 should be set in the `resources/simulation.properties` file. Credentials and container names for Object Storage should be set in the same file. See the `example_spark_submit.sh` script.  
+In `spark` mode, the code should be executed on a Spark cluster. An RDD is created and `.map` functions are used to farm out the 
+simulations to the executor nodes in order to parallelize the task. The `<uuid>.dat` simulation files are stored in an OpenStack Swift Object Store and meta-data for the simulation are stored separately in an IBM DB2 database. Credentials for DB2 should be set in the `resources/simulation.properties` file. Credentials and container names for Object Storage should be set in the same file. See the `example_spark_submit.sh` script.  
 
 
 ### Serial mode
@@ -41,17 +43,24 @@ and `spark` modes and test it out.
 
 ## Compile
 
-Instructions to install SBT: http://www.scala-sbt.org/release/docs/Setup.html
+To compile the entire code base, you'll need to install the Scala Build Tool. Instructions to install SBT: http://www.scala-sbt.org/release/docs/Setup.html
 
-The command below will download the dependecies, compile the code and package it into an
-uber jar file. 
 
-However, **you must first create the file `resources/simulation.properties`**. There is a `.template` file
+Before compilation, **you must first create the file `resources/simulation.properties`**. There is a `.template` file
 in the `resources` folder.
+
 If you are running the simulations in `local` mode, you will not need to fill in the 
-values. Otherwise, fill in the values if you are planning to store the output data files in OpenStack Object Storage 
-and IBM DB2 tables. [The structure of the IBM DB2 table is described below](#ibm-db2-table-strucuture). The `simulations.properties` file will be packaged into the
+values and the simplest option is to just copy
+
+```
+cp resources/simulation.properties.template resources/simulation.properties
+```
+
+Otherwise, fill in the values in the `simulation.properties` file if you are planning to store the output data files in OpenStack Object Storage 
+and IBM DB2 tables. [You'll need to build a table in DB2. The structure of the IBM DB2 table is described below](#ibm-db2-table-strucuture). The `simulations.properties` file will be packaged into the
 resulting `.jar` file and opened during run time. 
+
+Once you've created the `resources/simulation.properies` file, the following command should perform the entire build.
 
 ```
 sbt clean assembly
@@ -59,9 +68,9 @@ sbt clean assembly
 
 
 The `build.sbt` file specifies the Scala and Spark versions for which the code is 
-compiled, which are 2.11.8 and 2.1.0, respectively. Of course, change these values 
+compiled, which are 2.11.8 and 2.1.0, respectively. Of course, you shoul change these values 
 as needed. If you do not have access to a Spark cluster and only plan to run these 
-in `local`, then you don't need to modify the Spark version. Note that the `build.sbt` file
+in `local` mode, then you don't need to modify the Spark version. Note that the `build.sbt` file
 will not download the Apache Hadoop or Spark libraries (by using the 
 [`provided` option](build.sbt#L42-L44)). It assumes the path to those `.jar`s will be
 provided by the system. Again, if you're running in `local` mode, then you don't need
