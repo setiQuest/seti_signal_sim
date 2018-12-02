@@ -1,11 +1,11 @@
 # SETI Simulation Signals
 
 This code generates various classes of complex-valued time-series signals that are similar to signals observed at the 
-Allen Telescope Array, operated by the SETI Instititue. You can see what some of these signal classes look like by [reading this blog post](https://medium.com/ibm-watson-data-lab/using-artificial-intelligence-to-search-for-extraterrestrial-intelligence-ec19169e01af). We have also [published a paper](http://xxx.lanl.gov/abs/1803.08624) that contains information on the analytical model of these signals, along with work done to use convolutional neural networks to identify the different signal classes from their spectrogram representations. 
+Allen Telescope Array, operated by the SETI Institute. You can see what some of these signal classes look like by [reading this blog post](https://medium.com/ibm-watson-data-lab/using-artificial-intelligence-to-search-for-extraterrestrial-intelligence-ec19169e01af). We have also [published a paper](http://xxx.lanl.gov/abs/1803.08624) that contains information on the analytical model of these signals, along with work done to use convolutional neural networks to identify the different signal classes from their spectrogram representations. 
 
 The output simulation files (named `<uuid>.dat`) are simple: A JSON header, followed by a newline (`\n`), an optional 2nd JSON header followed by a newline, and then some number of bytes
 that hold the complex-valued time-series data. Each time-step comes in 2-byte pairs where the first byte is the real value
-and the second byte is the imaginary value. These data files can be read with the [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti). That python package can also be used to do some basic signal processing and caclulate spectrogram.
+and the second byte is the imaginary value. These data files can be read with the [`ibmseti` Python package](https://github.com/ibm-watson-data-lab/ibmseti). That python package can also be used to do some basic signal processing and calculate spectrogram.
 
 This code is in relatively poor shape an was built in a somewhat ad-hoc manner. You could call it "research-level code" (i.e. not consumer-friendly and no unit tests) and there are no guarantees. We really only know that it works on our local systems and an external Apache Spark (2.1.0) cluster.  
 *Please do not hesitate to contact the authors, submit Issues, or PRs if you have problems!* 
@@ -57,7 +57,7 @@ cp resources/simulation.properties.template resources/simulation.properties
 ```
 
 Otherwise, fill in the values in the `simulation.properties` file if you are planning to store the output data files in OpenStack Object Storage 
-and IBM DB2 tables. [You'll need to build a table in DB2. The structure of the IBM DB2 table is described below](#ibm-db2-table-strucuture). The `simulations.properties` file will be packaged into the
+and IBM DB2 tables. [You'll need to build a table in DB2. The structure of the IBM DB2 table is described below](#ibm-db2-table-structure). The `simulations.properties` file will be packaged into the
 resulting `.jar` file and opened during run time. 
 
 Once you've created the `resources/simulation.properies` file, the following command should perform the entire build.
@@ -68,7 +68,7 @@ sbt clean assembly
 
 
 The `build.sbt` file specifies the Scala and Spark versions for which the code is 
-compiled, which are 2.11.8 and 2.1.0, respectively. Of course, you shoul change these values 
+compiled, which are 2.11.8 and 2.1.0, respectively. Of course, you should change these values 
 as needed. If you do not have access to a Spark cluster and only plan to run these 
 in `local` mode, then you don't need to modify the Spark version. Note that the `build.sbt` file
 will not download the Apache Hadoop or Spark libraries (by using the 
@@ -159,7 +159,7 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar test spark 20 100
 
 The `sunnoise` is a special case. We created noise files that were created by observing the Sun for a number of hours. These
 noise files were stored in Object Storage and retrieved at run time (object storage container set in the properties file). 
-Unless you work at the SETI Instutite, you probably won't use this option!
+Unless you work at the SETI Institute, you probably won't use this option!
 
 
 Generate 1,000 training narrowband signals with gaussian white noise, and run on Spark with 20 separate partitions.
@@ -268,7 +268,7 @@ im.show()
 
 ## Modifying The Signals
 
-You may come to a point where you'd like to modify the output signals. Unfortunatley, the signal definitions are somewhat
+You may come to a point where you'd like to modify the output signals. Unfortunately, the signal definitions are somewhat
 hard-coded in the `spark/signaldef` folder. Ideally, signal definitions would have been written as simple documents and 
 loaded at run time. But assuming that you don't want to do the work to modify the code that significantly, here are the
 few things you're most likely to be interested in:
