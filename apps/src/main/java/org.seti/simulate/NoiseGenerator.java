@@ -8,23 +8,22 @@ public class NoiseGenerator {
         return 0.0;
     }
 
-    public void setName(String aName) {
-        name = aName;
-    }
-
     public String getName() {
         return name;
     }
 
-    public void setAmp(double val) {
-        amp = val;
+    public void setName(String aName) {
+        name = aName;
     }
 
     public double getAmp() {
         return amp;
     }
 
-    public void close() throws Exception {
-        return;
+    public void setAmp(double val) {
+        amp = val;
+    }
+
+    public void close() {
     }
 }

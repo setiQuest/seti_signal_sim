@@ -3,7 +3,7 @@ package org.seti.simulate;
 import java.util.Random;
 
 public class GaussianNoise extends NoiseGenerator {
-    private Random rand = null;
+    private Random rand;
 
     public GaussianNoise(Random aRand) {
         this.setName("gaussian");
@@ -11,7 +11,7 @@ public class GaussianNoise extends NoiseGenerator {
     }
 
     @Override
-    public double next() throws Exception {
+    public double next() {
         return rand.nextGaussian() * this.getAmp();
     }
 }

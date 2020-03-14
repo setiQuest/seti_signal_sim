@@ -1,12 +1,10 @@
 package org.seti.simulate;
 
-import java.io.IOException;
-
 public class ArrayNoise extends NoiseGenerator {
-    public byte[] vals = null;
+    public byte[] vals;
     public int index = 0;
 
-    public ArrayNoise(String aName, byte[] data) throws IOException {
+    public ArrayNoise(String aName, byte[] data) {
         this.setName(aName);
         this.vals = data;
     }
@@ -17,7 +15,7 @@ public class ArrayNoise extends NoiseGenerator {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         return;
     }
 }

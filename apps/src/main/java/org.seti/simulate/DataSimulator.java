@@ -1,9 +1,5 @@
 package org.seti.simulate;
 
-/**
- * DataSimulator produces complex-valued 8-bit sample data like from ATA beamformer.
- **/
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayOutputStream;
@@ -15,38 +11,40 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+/**
+ * DataSimulator produces complex-valued 8-bit sample data like from ATA beamformer.
+ **/
 public class DataSimulator {
 
     public static int mExpectedArgs = 13;
     public double mDriftDivisor = 1024;
 
-
     public int simulationVersion = 14;
     public String simulationVersionDate = "8 Dec 2017";
 
-    public Random rand = null;
-    public NoiseGenerator noiseGen = null;
-    public double sigN = 0;
-    public double dPhi = 0;
-    public double dPhiRad = 0;
-    public double SNR = 0;
-    public double drift = 0;
-    public double driftRateDerivate = 0;
-    public double jitter = 0;
-    public int numberOfDataSamples = 0;
-    public String ampModType = "none";
-    public double ampModPeriod = 0;
-    public double ampModDuty = 0;
+    public Random rand;
+    public NoiseGenerator noiseGen;
+    public double sigN;
+    public double dPhi;
+    public double dPhiRad;
+    public double SNR;
+    public double drift;
+    public double driftRateDerivate;
+    public double jitter;
+    public int numberOfDataSamples;
+    public String ampModType;
+    public double ampModPeriod;
+    public double ampModDuty;
     public OutputStream OS = null;
-    public String signalClass = "";
-    public long seed = 0;
+    public String signalClass;
+    public long seed;
     public Map<String, Object> privateHeader = null;
     public Map<String, Object> labeledPublicHeader = null;
     public Map<String, Object> unlabeledPublicHeader = null;
 
     public double sinDrift = 0;
     public double cosDrift = 0;
-    public String uuid = "";
+    public String uuid;
 
     public double cosPhi = 0;
     public double sinPhi = 0;
@@ -62,6 +60,29 @@ public class DataSimulator {
 
     public int numBeyondDynamicRangeX = 0;
     public int numBeyondDynamicRangeY = 0;
+
+    public DataSimulator(NoiseGenerator anoiseGen, double asigN, double adPhi, double aSNR,
+                         double adrift, double adriftRateDerivate, double ajitter, int alen,
+                         String aampModType, double aampModPeriod, double aampModDuty, String asignalClass, long aseed, Random arand, String auuid) throws Exception {
+        noiseGen = anoiseGen;
+        sigN = asigN;
+        dPhi = adPhi;
+        dPhiRad = dPhi / 180.0 * Math.PI;
+        SNR = aSNR;
+        drift = adrift;
+        driftRateDerivate = adriftRateDerivate;
+        jitter = ajitter;
+        numberOfDataSamples = alen;
+        ampModType = aampModType;
+        ampModPeriod = aampModPeriod;
+        ampModDuty = aampModDuty;
+        signalClass = asignalClass;
+        seed = aseed;
+        uuid = auuid;
+        rand = arand;
+
+        reset();
+    }
 
     public static void main(String[] args) throws Exception {
 
@@ -111,7 +132,7 @@ public class DataSimulator {
 
         // create output file
         FileOutputStream FOS = new FileOutputStream(new File(filename));
-        NoiseGenerator noiseGen = null;
+        NoiseGenerator noiseGen;
 
         if (noiseFile.equals("")) {
             noiseGen = new GaussianNoise(randGen);
@@ -157,35 +178,34 @@ public class DataSimulator {
         noiseGen.close();
     }
 
-    public DataSimulator(NoiseGenerator anoiseGen, double asigN, double adPhi, double aSNR,
-                         double adrift, double adriftRateDerivate, double ajitter, int alen,
-                         String aampModType, double aampModPeriod, double aampModDuty, String asignalClass, long aseed, Random arand, String auuid) throws Exception {
-        noiseGen = anoiseGen;
-        sigN = asigN;
-        dPhi = adPhi;
-        dPhiRad = dPhi / 180.0 * Math.PI;
-        SNR = aSNR;
-        drift = adrift;
-        driftRateDerivate = adriftRateDerivate;
-        jitter = ajitter;
-        numberOfDataSamples = alen;
-        ampModType = aampModType;
-        ampModPeriod = aampModPeriod;
-        ampModDuty = aampModDuty;
-        signalClass = asignalClass;
-        seed = aseed;
-        uuid = auuid;
-        rand = arand;
+    public static void PrintHelp() {
 
-        reset();
+        System.out.println("\n\t" + mExpectedArgs + " arguments expected\n\n"
+                + "\tsigmaNoise deltaPhi SNR  drift sigmaSquiggle outputLength ampModType ampModPeriod ampModDuty signalClass filename\n\n"
+                + "\twhere\n\n"
+                + "\t  sigmaNoise\t (double 0 - 127) noise mean power, 13 is good choice\n"
+                + "\t  noiseFile\t (string) path to noise file\n"
+                + "\t  deltaPhiDeg\t(double -180 - 180) average phase angle (degrees) between samples\n"
+                + "\t  SNR\t(double) Signal amplitude in terms of sigma_noise\n"
+                + "\t  drift\t(double) Average drift rate of signal\n"
+                + "\t  driftRateDerivate\t(double) Change of drift rate per 1m samples\n"
+                + "\t  sigmaSquiggle\t(double) amplitude of squiggle noise\n"
+                + "\t  outputLength\t(int > 2) number of complex-valued samples to write to output\n"
+                + "\t  ampModType\t(string = 'none','square','brightpixel', or 'sine') specifies how the amplitude is modulated\n"
+                + "\t  ampModPeriod\t(int > 2) periodicity of amplitude modulation, in same units of outputLength\n"
+                + "\t  ampModDuty\t(double betweeen 0 and 1) duty cycle of square wave amplitude modulation.\n"
+                + "\t  signalClass\t(string) a name to classify the signal.\n"
+                + "\t  filename\t(string) output filename for data. If \"\", then a unique ID will be used for the file name\n");
+
+        System.exit(0);
     }
 
-    public void updatePrivateHeader() throws Exception {
+    public void updatePrivateHeader() {
         privateHeader.put("total_signal_energy", signalEnergy);
         privateHeader.put("total_noise_energy", noiseEnergy);
     }
 
-    public void reset() throws Exception {
+    public void reset() {
         //resets all the initial settings so that you can run another simulation
         //the random number generator is NOT reset, so that subsequent simulations
         //will not produce the exact same output.
@@ -247,7 +267,7 @@ public class DataSimulator {
 
         //now use the initial conditions to build the privateHeader
 
-        privateHeader = new HashMap<String, Object>();
+        privateHeader = new HashMap<>();
         privateHeader.put("sigma_noise", sigN);
         privateHeader.put("noise_name", noiseGen.getName());
         privateHeader.put("delta_phi", dPhi);
@@ -272,11 +292,11 @@ public class DataSimulator {
         privateHeader.put("uuid", uuid);
 
 
-        labeledPublicHeader = new HashMap<String, Object>();
+        labeledPublicHeader = new HashMap<>();
         labeledPublicHeader.put("signal_classification", signalClass);
         labeledPublicHeader.put("uuid", uuid);
 
-        unlabeledPublicHeader = new HashMap<String, Object>();
+        unlabeledPublicHeader = new HashMap<>();
         unlabeledPublicHeader.put("uuid", uuid);
 
         signalEnergy = 0;
@@ -309,21 +329,25 @@ public class DataSimulator {
                 signalAmpFactor = SNR;
             }
 
-            if (ampModType.equals("square")) {
-                if ((i + ampModPeriod - ampPhaseSquare) % ampModPeriod > ampModPeriod * ampModDuty) {
-                    signalAmpFactor = 0;
-                }
-            } else if (ampModType.equals("brightpixel")) {  //note: the code to set signalAmpFactor=0 for 'square' should work for 'brightpixels', but there was a historical bug that created these seperate formula and I don't want to break anything so just going to leave it separate!
-                if (i < ampPhaseSquare || i > ampPhaseSquare + ampModPeriod * ampModDuty) {
-                    signalAmpFactor = 0;
-                }
-            } else if (ampModType.equals("sine")) {
-                signalAmpFactor = signalAmpFactor * Math.sin(2.0 * Math.PI * i / ampModPeriod + ampPhaseSine);
+            switch (ampModType) {
+                case "square":
+                    if ((i + ampModPeriod - ampPhaseSquare) % ampModPeriod > ampModPeriod * ampModDuty) {
+                        signalAmpFactor = 0;
+                    }
+                    break;
+                case "brightpixel":   //note: the code to set signalAmpFactor=0 for 'square' should work for 'brightpixels', but there was a historical bug that created these seperate formula and I don't want to break anything so just going to leave it separate!
+                    if (i < ampPhaseSquare || i > ampPhaseSquare + ampModPeriod * ampModDuty) {
+                        signalAmpFactor = 0;
+                    }
+                    break;
+                case "sine":
+                    signalAmpFactor = signalAmpFactor * Math.sin(2.0 * Math.PI * i / ampModPeriod + ampPhaseSine);
+                    break;
             }
 
             // generate noise values
-            double dNoiseX = 0;
-            double dNoiseY = 0;
+            double dNoiseX;
+            double dNoiseY;
             try {
                 dNoiseX = noiseGen.next();
                 dNoiseY = noiseGen.next();
@@ -424,28 +448,6 @@ public class DataSimulator {
 
         }
 
-    }
-
-    public static void PrintHelp() {
-
-        System.out.println("\n\t" + mExpectedArgs + " arguments expected\n\n"
-                + "\tsigmaNoise deltaPhi SNR  drift sigmaSquiggle outputLength ampModType ampModPeriod ampModDuty signalClass filename\n\n"
-                + "\twhere\n\n"
-                + "\t  sigmaNoise\t (double 0 - 127) noise mean power, 13 is good choice\n"
-                + "\t  noiseFile\t (string) path to noise file\n"
-                + "\t  deltaPhiDeg\t(double -180 - 180) average phase angle (degrees) between samples\n"
-                + "\t  SNR\t(double) Signal amplitude in terms of sigma_noise\n"
-                + "\t  drift\t(double) Average drift rate of signal\n"
-                + "\t  driftRateDerivate\t(double) Change of drift rate per 1m samples\n"
-                + "\t  sigmaSquiggle\t(double) amplitude of squiggle noise\n"
-                + "\t  outputLength\t(int > 2) number of complex-valued samples to write to output\n"
-                + "\t  ampModType\t(string = 'none','square','brightpixel', or 'sine') specifies how the amplitude is modulated\n"
-                + "\t  ampModPeriod\t(int > 2) periodicity of amplitude modulation, in same units of outputLength\n"
-                + "\t  ampModDuty\t(double betweeen 0 and 1) duty cycle of square wave amplitude modulation.\n"
-                + "\t  signalClass\t(string) a name to classify the signal.\n"
-                + "\t  filename\t(string) output filename for data. If \"\", then a unique ID will be used for the file name\n");
-
-        System.exit(0);
     }
 
 // public static String bytesToHex(byte[] bytes) {
