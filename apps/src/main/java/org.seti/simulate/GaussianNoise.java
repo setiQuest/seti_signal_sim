@@ -1,4 +1,4 @@
-package apps.simulate;
+package org.seti.simulate;
 import java.util.Random;
 
 public class GaussianNoise extends NoiseGenerator

@@ -1,4 +1,4 @@
-package apps.simulate;
+package org.seti.simulate;
 
 public class NoiseGenerator 
 {

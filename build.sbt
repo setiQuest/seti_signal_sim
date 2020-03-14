@@ -9,8 +9,8 @@ version := "8.0"
 // project description
 description := "SETI Signal Simulator"
 
-javaSource in Compile := baseDirectory.value / "apps"
-scalaSource in Compile := baseDirectory.value / "spark"
+javaSource in Compile := baseDirectory.value / "apps" / "src" / "main" / "java"
+scalaSource in Compile := baseDirectory.value / "spark" / "src" / "main" / "scala"
 
 scalaVersion := "2.11.8"
 

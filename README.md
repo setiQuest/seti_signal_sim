@@ -89,7 +89,7 @@ java -jar <jar file> <parameters>
 
 #### A simple example
 
-In the example below, a `narrowband` signal class is simulated. The range of simulation parameters for each class is hard-coded in the [classes here](spark/signaldef). (This is less than ideal coding practice, but worked for our purposes.)
+In the example below, a `narrowband` signal class is simulated. The range of simulation parameters for each class is hard-coded in the [classes here](spark/src/main/scala/org/seti/simulator/signaldef). (This is less than ideal coding practice, but worked for our purposes.)
 
 The `training` option tells the program to report the signal class in the public header and specifies 
 a particular range of signal amplitudes to that may be simulated (the `basic` option would use a larger range of amplitudes). 
@@ -119,7 +119,7 @@ java -jar  target/scala-2.11/signalsimulation-assembly-8.0.jar <data_class> <mod
  * `<mode>` either `local`, `serial` or `spark`, as explained above.
  * `<number_of_partitions>` number of Spark partitions to use IF `mode=spark`, otherwise DO NOT INCLUDE this value in command
  * `<number_of_simulations>` number of signals to simulate
- * `<signal_class>` See [SignalDefFactory.scala](spark/signaldef/SignalDefFactory.scala) for list of available classes.
+ * `<signal_class>` See [SignalDefFactory.scala](spark/src/main/scala/org/seti/simulator/signaldef/SignalDefFactory.scala) for list of available classes.
  * `<noise>` one of `gaussian`, `sunnoise` or the path to a file. If `sunnoise`, will attempt to access Object Storage instance for data file.
  * `<SNR>` If `mode=local`, then one can specify a fixed SNR value to use for all simulations.  This ONLY works in `local` mode. If this is not specified, a range of SNR values will be simulated. 
 
@@ -273,8 +273,8 @@ hard-coded in the `spark/signaldef` folder. Ideally, signal definitions would ha
 loaded at run time. But assuming that you don't want to do the work to modify the code that significantly, here are the
 few things you're most likely to be interested in:
 
-  * Signal Length: You can shorten (or lengthen) the signal length for all signals by modifying [this line in the SignalDef base class](spark/signaldef/SignalDef.scala#L15).
-  * Signal Amplitude Range: Each signal class has its own specified range of signal amplitude (SNR). So, you'll have to change each signal class separately. For example, for `narrowband` signals, you can change the [range of signal amplitudes here](spark/signaldef/NarrowBand.scala#L18). 
+  * Signal Length: You can shorten (or lengthen) the signal length for all signals by modifying [this line in the SignalDef base class](spark/src/main/scala/org/seti/simulator/signaldef/SignalDef.scala#L15).
+  * Signal Amplitude Range: Each signal class has its own specified range of signal amplitude (SNR). So, you'll have to change each signal class separately. For example, for `narrowband` signals, you can change the [range of signal amplitudes here](spark/src/main/scala/org/seti/simulator/signaldef/NarrowBand.scala#L18). 
   * Similar to the signal amplitude, for each class you can modify the various properties, such as the `drift`, `deltaPhiRad` (initial starting frequency), `ampModDuty` (duty factor for amplitude modulation), `ampModPeriod` (periodicity of amplitude modulation), `ampModType` (amplitude modulation type: either square or sine), and `sigmaSquiggle` (amplitude of amount of "squiggle" in the signal). 
 
 
