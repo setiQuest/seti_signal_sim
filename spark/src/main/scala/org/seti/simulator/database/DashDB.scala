@@ -2,6 +2,8 @@ package org.seti.simulator.database
 
 import java.sql._
 
+import com.ibm.db2.jcc.DB2Driver
+
 class DashDB(jdbc_url: String,
              user: String,
              pass: String,
@@ -9,7 +11,7 @@ class DashDB(jdbc_url: String,
 
   val jdbcClassName = "com.ibm.db2.jcc.DB2Driver"
   Class.forName(jdbcClassName)
-  java.sql.DriverManager.registerDriver(new com.ibm.db2.jcc.DB2Driver)
+  java.sql.DriverManager.registerDriver(new DB2Driver)
   val connection: Connection = DriverManager.getConnection(jdbc_url, user, pass)
 
   var insertString = s"insert into $databasename values("
@@ -49,7 +51,7 @@ class DashDB(jdbc_url: String,
   // noise_power DECIMAL(31, 10),
   // );
 
-  for (i <- 1 until tableSize) {
+  for (_ <- 1 until tableSize) {
     insertString += "?,"
   }
   insertString += "?)"
