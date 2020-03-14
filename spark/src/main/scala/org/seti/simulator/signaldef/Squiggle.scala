@@ -1,28 +1,26 @@
 package org.seti.simulator.signaldef
 
-import java.util.Random;
+import java.util.Random
 
-private class Squiggle(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
+private class Squiggle(rand: Random, dataClass: String)
+    extends SignalDef(rand, dataClass) {
 
   signalClass = "squiggle"
 
   def next {
 
-    deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
+    deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
 
-    if (dataClass == "basic" || dataClass == "basictest"){
+    if (dataClass == "basic" || dataClass == "basictest") {
       SNR = nextDoubleFromRange(0.4, 0.5)
       drift = nextDoubleFromRange(-0.004, 0.004)
       //sigmaSquiggle = nextDoubleFromRange(0.0001, 0.001)
       sigmaSquiggle = nextDoubleFromRange(0.001, 0.01)
-    }
-    else {
-      SNR = nextDoubleFromRange(0.1, 0.5) 
-      drift = nextDoubleFromRange(-0.0075, 0.0075) 
+    } else {
+      SNR = nextDoubleFromRange(0.1, 0.5)
+      drift = nextDoubleFromRange(-0.0075, 0.0075)
       sigmaSquiggle = nextDoubleFromRange(0.0001, 0.005)
     }
-
-
     // //random chance for pure noise
     // //keep this number a secret!!
     // if(dataClass == "test") {

@@ -1,19 +1,20 @@
 package org.seti.simulator.signaldef
 
-import java.util.Random;
+import java.util.Random
 
-private class SinePulsedNarrowBand(rand: Random, dataClass: String) extends SignalDef(rand,dataClass) {
+private class SinePulsedNarrowBand(rand: Random, dataClass: String)
+    extends SignalDef(rand, dataClass) {
 
   signalClass = "sinepulsednarrowband"
   ampModType = "sine"
 
   def next {
 
-    deltaPhiRad = nextDoubleFromRange(-120.0, 120.0) 
-    SNR = nextDoubleFromRange(0.05, 0.5) 
-    //SNR = nextDoubleFromRange(0.3, 0.5) 
-    drift = nextDoubleFromRange(-0.0075, 0.0075) 
-    ampModPeriod = nextDoubleFromRange(5*6144, 15*6144)
+    deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
+    SNR = nextDoubleFromRange(0.05, 0.5)
+    //SNR = nextDoubleFromRange(0.3, 0.5)
+    drift = nextDoubleFromRange(-0.0075, 0.0075)
+    ampModPeriod = nextDoubleFromRange(5 * 6144, 15 * 6144)
     ampModDuty = nextDoubleFromRange(0.05, 0.9)
 
     // //random chance for pure noise

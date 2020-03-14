@@ -1,6 +1,6 @@
 package org.seti.simulator.database
 
-import java.sql._;
+import java.sql._
 
 class DashDB(jdbc_url: String,
              user: String,
@@ -9,11 +9,10 @@ class DashDB(jdbc_url: String,
 
   val jdbcClassName = "com.ibm.db2.jcc.DB2Driver"
   Class.forName(jdbcClassName)
-  java.sql.DriverManager.registerDriver(new com.ibm.db2.jcc.DB2Driver);
-  val connection
-    : Connection = DriverManager.getConnection(jdbc_url, user, pass);
+  java.sql.DriverManager.registerDriver(new com.ibm.db2.jcc.DB2Driver)
+  val connection: Connection = DriverManager.getConnection(jdbc_url, user, pass)
 
-  var insertString = s"insert into $databasename values(";
+  var insertString = s"insert into $databasename values("
   val tableSize = 27
   //there are 27 parameters to add to the database
   //here's the format of that database
@@ -50,128 +49,128 @@ class DashDB(jdbc_url: String,
   // noise_power DECIMAL(31, 10),
   // );
 
-  for (i <- 1 to tableSize - 1) {
-    insertString += "?,";
+  for (i <- 1 until tableSize) {
+    insertString += "?,"
   }
   insertString += "?)"
 
   val insertDataStatement: PreparedStatement =
-    connection.prepareStatement(insertString);
+    connection.prepareStatement(insertString)
 
   def uuid(uuid: String) {
-    insertDataStatement.setString(1, uuid);
+    insertDataStatement.setString(1, uuid)
   }
 
   def sigN(sigN: Double) {
-    insertDataStatement.setDouble(2, sigN);
+    insertDataStatement.setDouble(2, sigN)
   }
 
   def noiseName(noiseName: String) {
-    insertDataStatement.setString(3, noiseName);
+    insertDataStatement.setString(3, noiseName)
   }
 
   def dPhi(dPhi: Double) {
-    insertDataStatement.setDouble(4, dPhi);
+    insertDataStatement.setDouble(4, dPhi)
   }
 
   def SNR(SNR: Double) {
-    insertDataStatement.setDouble(5, SNR);
+    insertDataStatement.setDouble(5, SNR)
   }
 
   def drift(drift: Double) {
-    insertDataStatement.setDouble(6, drift);
+    insertDataStatement.setDouble(6, drift)
   }
 
   def driftRateDerivative(driftRateDerivative: Double) {
-    insertDataStatement.setDouble(7, driftRateDerivative);
+    insertDataStatement.setDouble(7, driftRateDerivative)
   }
 
   def jitter(jitter: Double) {
-    insertDataStatement.setDouble(8, jitter);
+    insertDataStatement.setDouble(8, jitter)
   }
 
   def len(len: Long) {
-    insertDataStatement.setLong(9, len);
+    insertDataStatement.setLong(9, len)
   }
 
   def ampModType(ampModType: String) {
-    insertDataStatement.setString(10, ampModType);
+    insertDataStatement.setString(10, ampModType)
   }
 
   def ampModPeriod(ampModPeriod: Double) {
-    insertDataStatement.setDouble(11, ampModPeriod);
+    insertDataStatement.setDouble(11, ampModPeriod)
   }
 
   def ampModDuty(ampModDuty: Double) {
-    insertDataStatement.setDouble(12, ampModDuty);
+    insertDataStatement.setDouble(12, ampModDuty)
   }
 
   def ampPhase(ampPhase: Double) {
-    insertDataStatement.setDouble(13, ampPhase);
+    insertDataStatement.setDouble(13, ampPhase)
   }
 
   def ampPhaseSquare(ampPhaseSquare: Double) {
-    insertDataStatement.setDouble(14, ampPhaseSquare);
+    insertDataStatement.setDouble(14, ampPhaseSquare)
   }
 
   def ampPhaseSine(ampPhaseSine: Double) {
-    insertDataStatement.setDouble(15, ampPhaseSine);
+    insertDataStatement.setDouble(15, ampPhaseSine)
   }
 
   def signalClass(signalClass: String) {
-    insertDataStatement.setString(16, signalClass);
+    insertDataStatement.setString(16, signalClass)
   }
 
   def seed(seed: Long) {
-    insertDataStatement.setLong(17, seed);
+    insertDataStatement.setLong(17, seed)
   }
 
   def mDriftDivisor(mDriftDivisor: Double) {
-    insertDataStatement.setDouble(18, mDriftDivisor);
+    insertDataStatement.setDouble(18, mDriftDivisor)
   }
 
   def sinDrift(sinDrift: Double) {
-    insertDataStatement.setDouble(19, sinDrift);
+    insertDataStatement.setDouble(19, sinDrift)
   }
 
   def cosDrift(cosDrift: Double) {
-    insertDataStatement.setDouble(20, cosDrift);
+    insertDataStatement.setDouble(20, cosDrift)
   }
 
   def simulationVersion(simulationVersion: Int) {
-    insertDataStatement.setInt(21, simulationVersion);
+    insertDataStatement.setInt(21, simulationVersion)
   }
 
   def simulationVersionDate(simulationVersionDate: String) {
-    insertDataStatement.setString(22, simulationVersionDate);
+    insertDataStatement.setString(22, simulationVersionDate)
   }
 
   def time(time: Timestamp) {
-    insertDataStatement.setTimestamp(23, time);
+    insertDataStatement.setTimestamp(23, time)
   }
 
   def container(container: String) {
-    insertDataStatement.setString(24, container);
+    insertDataStatement.setString(24, container)
   }
 
   def outputFileName(outputFileName: String) {
-    insertDataStatement.setString(25, outputFileName);
+    insertDataStatement.setString(25, outputFileName)
   }
 
   def etag(etag: String) {
-    insertDataStatement.setString(26, etag);
+    insertDataStatement.setString(26, etag)
   }
 
   def noise_file_uuid(noise_file_uuid: String) {
-    insertDataStatement.setString(27, noise_file_uuid);
+    insertDataStatement.setString(27, noise_file_uuid)
   }
 
   def signalPower(signalPower: Double) {
-    insertDataStatement.setDouble(28, signalPower);
+    insertDataStatement.setDouble(28, signalPower)
   }
 
   def noisePower(noisePower: Double) {
-    insertDataStatement.setDouble(29, noisePower);
+    insertDataStatement.setDouble(29, noisePower)
   }
 
   //needed data retrieval queries

@@ -27,7 +27,7 @@ import org.seti.simulator.SunNoise
 
 import scala.collection.JavaConverters._
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper
 
 import org.seti.simulator.errors.MisMatchDigest
 import org.seti.simulator.errors.MissingSunNoise
@@ -41,15 +41,15 @@ import org.seti.simulator.signaldef.SignalDef
 
 import com.ibm.ibmos2spark.bluemix
 
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FSDataInputStream
+import org.apache.hadoop.fs.FSDataOutputStream
+import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.net.URI;
+import java.io.EOFException
+import java.io.IOException
+import java.net.URI
 
 import org.apache.hadoop.conf.Configuration
 
@@ -58,7 +58,7 @@ object SETISim {
   //will this parallelize properly within spark?
   //or should each job make a new ObjectStore and DashDB connection??
   //will they even be able to be used
-  var configurationName: String = "setipublic"
+  val configurationName: String = "setipublic"
   //var dataClass : String = "" //this will either be 'training', 'test', 'basic', or 'private'
 
   // def makeNoiseGen(noiseName: String, seed: Long, sigdef: SignalDef) : NoiseGenerator =  {
@@ -85,10 +85,10 @@ object SETISim {
 
     //prevents creating empty partitions, which can result in a pointer exception
     //when iterating through data (such as during mapPartitionsWithIndex function)
-    var numPartitionsNeeded = numPartitions;
+    var numPartitionsNeeded = numPartitions
 
     if (nSim < numPartitionsNeeded) {
-      numPartitionsNeeded = nSim;
+      numPartitionsNeeded = nSim
     }
 
     val initSeed: Long = System.currentTimeMillis() * nSim * numPartitionsNeeded
@@ -101,41 +101,35 @@ object SETISim {
     var simulatedSignalContainer: String = ""
 
     dataClass match {
-      case "test" => {
+      case "test" =>
         simulatedSignalContainer = props.getProperty("test_data_container")
         dashdb_database_name = props.getProperty("test_databasename")
-      }
-      case "basic" => {
+      case "basic" =>
         simulatedSignalContainer = props.getProperty("basic_data_container")
-      }
-      case "basictest" => {
+      case "basictest" =>
         simulatedSignalContainer =
           props.getProperty("basic_test_data_container")
         dashdb_database_name = props.getProperty("basic_test_databasename")
-      }
-      case "training" => {
+      case "training" =>
         simulatedSignalContainer = props.getProperty("training_data_container")
-      }
-      case "private" => {
+      case "private" =>
         simulatedSignalContainer = props.getProperty("private_data_container")
-      }
-      case _ => {
+      case _ =>
         println(
           "Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic', 'basictest' or 'private'."
         )
         return
-      }
     }
 
     println(s"Found $props")
 
     println("Generating initial RDD")
-    var noiseArray: Array[(Int, String, String, String)] =
+    val noiseArray: Array[(Int, String, String, String)] =
       new Array[(Int, String, String, String)](nSim)
 
     println("Noise Array of size: " + noiseArray.length)
 
-    var rand = new Random(initSeed)
+    val rand = new Random(initSeed)
 
     if (noiseName == "sunnoise") {
       //need to get list of nSim noise files from database
@@ -147,7 +141,7 @@ object SETISim {
         props.getProperty("DASHDBPASS"),
         dashdb_database_name
       ) //will need to use a connection pool.
-      var sunnoise = dashdbForSun.get_sun_noise(nSim)
+      val sunnoise = dashdbForSun.get_sun_noise(nSim)
       var counter: Int = 0
       println("filling sun noise")
       while (sunnoise.next) {
@@ -180,12 +174,12 @@ object SETISim {
       }
     }
 
-    var rdd = sc.parallelize(noiseArray, numPartitionsNeeded)
+    val rdd = sc.parallelize(noiseArray, numPartitionsNeeded)
 
-    var count = rdd.count
+    val count = rdd.count
     println(s"Starting $count simulations... ")
 
-    var rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
+    val rdd2 = rdd.mapPartitionsWithIndex { (indx, iter) =>
       //how do I bail if iter is empty? or if it's null?
       //if (!iter.hasNext) {
       //  return iter
@@ -198,42 +192,42 @@ object SETISim {
         dashdb_database_name
       ) //will need to use a connection pool.
 
-      var seed: Long = initSeed + indx
-      var randGen = new Random(seed)
+      val seed: Long = initSeed + indx
+      val randGen = new Random(seed)
 
-      var mConf: Configuration = new Configuration(true)
-      mConf.set("fs.swift2d.impl", "com.ibm.stocator.fs.ObjectStoreFileSystem");
+      val mConf: Configuration = new Configuration(true)
+      mConf.set("fs.swift2d.impl", "com.ibm.stocator.fs.ObjectStoreFileSystem")
       mConf.set(
         s"fs.swift2d.service.$configurationName.auth.url",
         props.getProperty("auth_url") + "/auth/tokens"
-      );
-      mConf.set(s"fs.swift2d.service.$configurationName.public", "true");
+      )
+      mConf.set(s"fs.swift2d.service.$configurationName.public", "true")
       mConf.set(
         s"fs.swift2d.service.$configurationName.tenant",
         props.getProperty("project_id")
-      );
+      )
       mConf.set(
         s"fs.swift2d.service.$configurationName.password",
         props.getProperty("password")
-      );
+      )
       mConf.set(
         s"fs.swift2d.service.$configurationName.username",
         props.getProperty("user_id")
-      );
+      )
       mConf.set(
         s"fs.swift2d.service.$configurationName.region",
         props.getProperty("region")
-      );
+      )
       mConf.set(
         s"fs.swift2d.service.$configurationName.region",
         props.getProperty("region")
-      );
+      )
 
       var maxPerRoute: Int = 100
       if (nSim > 100) {
         maxPerRoute = nSim
       }
-      var maxTotal: Int = 2 * maxPerRoute
+      val maxTotal: Int = 2 * maxPerRoute
 
       mConf.set(s"fs.stocator.MaxPerRoute", maxPerRoute.toString)
       mConf.set(s"fs.stocator.MaxTotal", maxTotal.toString)
@@ -255,17 +249,17 @@ object SETISim {
           //val objstore : OpenStack4jObjectStore = new OpenStack4jObjectStore(props, configurationName)
           // val dashdbSlow : DashDB = new DashDB(props.getProperty("JDBC_URL"), props.getProperty("DASHDBUSER"), props.getProperty("DASHDBPASS"),  dashdb_database_name)  //will need to use a connection pool.
 
-          var uuid: String = UUID.randomUUID().toString()
+          val uuid: String = UUID.randomUUID().toString
           var status = "success"
           var outputFileName = s"$uuid.dat"
           var message = s"starting simulation $seed for original $uuid\n"
 
-          var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
+          val sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
 
           var noiseGen: NoiseGenerator = null
           if (i._2 == "gaussian") {
-            noiseGen = new GaussianNoise(randGen);
-            noiseGen.setAmp(sigdef.sigmaN);
+            noiseGen = new GaussianNoise(randGen)
+            noiseGen.setAmp(sigdef.sigmaN)
           } else {
             if (i._3 == "") {
               noiseGen = new FileNoise(i._2)
@@ -277,12 +271,11 @@ object SETISim {
                 noiseGen = new SunNoise(i._2, i._3, objstore)
                 noiseGen.setAmp(1.0)
               } catch {
-                case e: Throwable => {
+                case e: Throwable =>
                   status = "failed"
                   message += "row: " + i.toString + "\n"
                   message += "SunNoise exception\n"
                   message += s"${e.getMessage}\n"
-                }
               }
             }
           }
@@ -290,7 +283,7 @@ object SETISim {
           if (status == "success") {
             //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
-            var DS = new DataSimulator(
+            val DS = new DataSimulator(
               noiseGen,
               sigdef.sigmaN,
               sigdef.deltaPhiRad,
@@ -306,21 +299,21 @@ object SETISim {
               seed,
               randGen,
               uuid
-            );
+            )
 
-            var rawSimulatedDataByteStream =
-              new ByteArrayOutputStream(2 * sigdef.outputLength);
+            val rawSimulatedDataByteStream =
+              new ByteArrayOutputStream(2 * sigdef.outputLength)
 
-            DS.run(rawSimulatedDataByteStream);
+            DS.run(rawSimulatedDataByteStream)
 
-            DS.updatePrivateHeader();
+            DS.updatePrivateHeader()
 
-            var dataOutputByteStream =
-              new ByteArrayOutputStream(rawSimulatedDataByteStream.size());
+            val dataOutputByteStream =
+              new ByteArrayOutputStream(rawSimulatedDataByteStream.size())
 
             //only add the public header to output byte stream.
-            var mapper = new ObjectMapper();
-            val digest: MessageDigest = MessageDigest.getInstance("MD5");
+            val mapper = new ObjectMapper()
+            val digest: MessageDigest = MessageDigest.getInstance("MD5")
 
             //var json = mapper.writeValueAsString(DS.labeledPublicHeader);
             //System.out.println(json);
@@ -331,31 +324,31 @@ object SETISim {
               //ensure test data cannot be grouped together by UUID, since UIID encodes the time stamp.
               //For example, if 100 test simulations were created at the same time, thier UUIDs could be used
               //to reconstruct the time they were created and then allow somebody to group them together
-              var hashBytes =
-                digest.digest(rawSimulatedDataByteStream.toByteArray());
+              val hashBytes =
+                digest.digest(rawSimulatedDataByteStream.toByteArray)
               DS.uuid = HexBytesUtil.bytes2hex(hashBytes)
 
-              DS.privateHeader.put("uuid", DS.uuid);
-              DS.labeledPublicHeader.put("uuid", DS.uuid);
-              DS.unlabeledPublicHeader.put("uuid", DS.uuid);
+              DS.privateHeader.put("uuid", DS.uuid)
+              DS.labeledPublicHeader.put("uuid", DS.uuid)
+              DS.unlabeledPublicHeader.put("uuid", DS.uuid)
 
               dataOutputByteStream
-                .write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader));
+                .write(mapper.writeValueAsBytes(DS.unlabeledPublicHeader))
             } else {
               dataOutputByteStream
-                .write(mapper.writeValueAsBytes(DS.labeledPublicHeader));
+                .write(mapper.writeValueAsBytes(DS.labeledPublicHeader))
             }
-            dataOutputByteStream.write('\n');
+            dataOutputByteStream.write('\n')
             dataOutputByteStream
-              .write(rawSimulatedDataByteStream.toByteArray());
+              .write(rawSimulatedDataByteStream.toByteArray)
 
             outputFileName = s"${DS.uuid}.dat"
             message += s"File name: $outputFileName\n"
 
-            noiseGen.close();
+            noiseGen.close()
 
-            var hashBytes = digest.digest(dataOutputByteStream.toByteArray);
-            var localEtag = HexBytesUtil.bytes2hex(hashBytes)
+            val hashBytes = digest.digest(dataOutputByteStream.toByteArray)
+            val localEtag = HexBytesUtil.bytes2hex(hashBytes)
 
             //val dashdbSlow : DashDB = new DashDB(sys.env("JDBC_URL"), sys.env("DASHDBUSER"), sys.env("DASHDBPASS"))  //will need to use a connection pool.
 
@@ -363,42 +356,40 @@ object SETISim {
 
             try {
               noiseGen match {
-                case m: SunNoise => {
+                case m: SunNoise =>
                   dashDBConnection.update_sun_noise_usage(i._4, "True")
                   dashDBConnection.noise_file_uuid(i._4)
-                }
-                case _ => {
+                case _ =>
                   dashDBConnection.noise_file_uuid("")
-                }
               }
 
               dashDBConnection.uuid(DS.uuid)
-              dashDBConnection.sigN(DS.sigN);
-              dashDBConnection.noiseName(noiseGen.getName());
-              dashDBConnection.dPhi(DS.dPhi);
-              dashDBConnection.SNR(DS.SNR);
-              dashDBConnection.drift(DS.drift);
-              dashDBConnection.driftRateDerivative(DS.driftRateDerivate);
-              dashDBConnection.jitter(DS.jitter);
-              dashDBConnection.len(DS.numberOfDataSamples);
-              dashDBConnection.ampModType(DS.ampModType);
-              dashDBConnection.ampModPeriod(DS.ampModPeriod);
-              dashDBConnection.ampModDuty(DS.ampModDuty);
-              dashDBConnection.ampPhase(DS.ampPhase);
-              dashDBConnection.ampPhaseSquare(DS.ampPhaseSquare);
-              dashDBConnection.ampPhaseSine(DS.ampPhaseSine);
-              dashDBConnection.signalClass(DS.signalClass);
-              dashDBConnection.seed(DS.seed);
-              dashDBConnection.mDriftDivisor(DS.mDriftDivisor);
-              dashDBConnection.sinDrift(DS.sinDrift);
-              dashDBConnection.cosDrift(DS.cosDrift);
-              dashDBConnection.simulationVersion(DS.simulationVersion);
-              dashDBConnection.simulationVersionDate(DS.simulationVersionDate);
+              dashDBConnection.sigN(DS.sigN)
+              dashDBConnection.noiseName(noiseGen.getName)
+              dashDBConnection.dPhi(DS.dPhi)
+              dashDBConnection.SNR(DS.SNR)
+              dashDBConnection.drift(DS.drift)
+              dashDBConnection.driftRateDerivative(DS.driftRateDerivate)
+              dashDBConnection.jitter(DS.jitter)
+              dashDBConnection.len(DS.numberOfDataSamples)
+              dashDBConnection.ampModType(DS.ampModType)
+              dashDBConnection.ampModPeriod(DS.ampModPeriod)
+              dashDBConnection.ampModDuty(DS.ampModDuty)
+              dashDBConnection.ampPhase(DS.ampPhase)
+              dashDBConnection.ampPhaseSquare(DS.ampPhaseSquare)
+              dashDBConnection.ampPhaseSine(DS.ampPhaseSine)
+              dashDBConnection.signalClass(DS.signalClass)
+              dashDBConnection.seed(DS.seed)
+              dashDBConnection.mDriftDivisor(DS.mDriftDivisor)
+              dashDBConnection.sinDrift(DS.sinDrift)
+              dashDBConnection.cosDrift(DS.cosDrift)
+              dashDBConnection.simulationVersion(DS.simulationVersion)
+              dashDBConnection.simulationVersionDate(DS.simulationVersionDate)
 
-              dashDBConnection.time(new Timestamp(System.currentTimeMillis()));
-              dashDBConnection.container(simulatedSignalContainer);
-              dashDBConnection.outputFileName(outputFileName);
-              dashDBConnection.etag(localEtag);
+              dashDBConnection.time(new Timestamp(System.currentTimeMillis()))
+              dashDBConnection.container(simulatedSignalContainer)
+              dashDBConnection.outputFileName(outputFileName)
+              dashDBConnection.etag(localEtag)
 
               message += s"PUT to object store $simulatedSignalContainer, $outputFileName, SNR: ${DS.SNR}, class: ${DS.signalClass}, data_class: $dataClass\n"
 
@@ -425,40 +416,36 @@ object SETISim {
               // ... code to handle exceptions
               // if DB connection exception, don't push data file to Object Storage.
               //Need to print out info for logs.
-              case e: SQLException => {
+              case e: SQLException =>
                 printException(e)
                 message += s"SQLException\n"
                 message += s"${e.getMessage}\n"
                 status = "failed"
                 try {
                   println("Transaction is being rolled back");
-                  dashDBConnection.connection.rollback;
+                  dashDBConnection.connection.rollback();
                   objstore.delete(simulatedSignalContainer, outputFileName);
                 } catch {
-                  case ee: Throwable => {
-                    ee.printStackTrace
+                  case ee: Throwable =>
+                    ee.printStackTrace()
                     message += s"Rollback/Delete Exception\n"
                     message += s"${ee.getMessage}\n"
-                  }
                 }
-              }
-              case e: Throwable => {
-                e.printStackTrace
+              case e: Throwable =>
+                e.printStackTrace()
                 status = "failed"
                 message += s"General Exception\n"
                 message += s"${e.getMessage}\n"
                 try {
                   println("Transaction is being rolled back");
-                  dashDBConnection.connection.rollback
+                  dashDBConnection.connection.rollback()
                   objstore.delete(simulatedSignalContainer, outputFileName);
                 } catch {
-                  case ee: Throwable => {
-                    ee.printStackTrace
+                  case ee: Throwable =>
+                    ee.printStackTrace()
                     message += s"Rollback/Delete Exception\n"
                     message += s"${ee.getMessage}\n"
-                  }
                 }
-              }
             } finally {
               message += "finally\n"
               //dashdbSlow.insertDataStatement.close
@@ -482,7 +469,7 @@ object SETISim {
 
     //rdd2.count()
     //var rdd3 = rdd2.filter(i => {i._3 == "failed"})
-    var results = rdd2.collect()
+    val results = rdd2.collect()
 
     //println("Completed " + rdd3.count() + " simulations out of " + nSim + " requested of type " +  paramGenName)
     //println("Failed " + rdd3.count() + " simulations out of " + nSim + " requested of type " +  paramGenName)
@@ -494,15 +481,19 @@ object SETISim {
 
     println("Number of simulations by noise type.")
     //var noiseTypes = results.map(i => i._6)
-    println(results.map(i => i._6).groupBy(identity).mapValues(_.size))
+    println(results.map(i => i._6).groupBy(identity).mapValues(_.length))
 
-    var success = results.filter(i => { i._3 == "success" })
+    val success = results.filter(i => {
+      i._3 == "success"
+    })
     println(
       "Successful: " + success.length + " simulations out of " + nSim + " requested of type " + paramGenName
     )
     success.foreach(i => { println("generated file: " + i._5) })
 
-    var failures = results.filter(i => { i._3 == "failed" })
+    val failures = results.filter(i => {
+      i._3 == "failed"
+    })
     println("Failed messages")
     failures.foreach(i => { println(i._4) })
 
@@ -524,30 +515,24 @@ object SETISim {
     var dashdb_database_name = props.getProperty("databasename")
 
     dataClass match {
-      case "test" => {
+      case "test" =>
         simulatedSignalContainer = props.getProperty("test_data_container")
         dashdb_database_name = props.getProperty("test_databasename")
-      }
-      case "basic" => {
+      case "basic" =>
         simulatedSignalContainer = props.getProperty("basic_data_container")
-      }
-      case "basictest" => {
+      case "basictest" =>
         simulatedSignalContainer =
           props.getProperty("basic_test_data_container")
         dashdb_database_name = props.getProperty("basic_test_databasename")
-      }
-      case "training" => {
+      case "training" =>
         simulatedSignalContainer = props.getProperty("training_data_container")
-      }
-      case "private" => {
+      case "private" =>
         simulatedSignalContainer = props.getProperty("private_data_container")
-      }
-      case _ => {
+      case _ =>
         println(
           "Incorrect data class ($dataClass). Choose either 'test', 'training', 'basic', 'basictest' or 'private'.."
         )
         return
-      }
     }
 
     var objstore: OpenStack4jObjectStore = null
@@ -565,11 +550,11 @@ object SETISim {
     }
 
     val seed: Long = System.currentTimeMillis()
-    var randGen = new Random(seed)
+    val randGen = new Random(seed)
 
     for (i <- 0 until nSim) {
 
-      var sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
+      val sigdef = SignalDefFactory(paramGenName, randGen, dataClass)
       sigdef.SNR = signalAmp.getOrElse(sigdef.SNR)
 
       val digest: MessageDigest = MessageDigest.getInstance("MD5"); //I could probably do this outside of the loop and call reset, but I don't want to test this right now.
@@ -585,11 +570,11 @@ object SETISim {
       }
       //val noiseGen = makeNoiseGen(noiseName, seed, sigdef)
 
-      var uuid: String = UUID.randomUUID().toString()
+      val uuid: String = UUID.randomUUID().toString
       println(s"original uuid: $uuid")
-      println(sigdef.toString)
+      println(sigdef.toString())
 
-      var DS = new DataSimulator(
+      val DS = new DataSimulator(
         noiseGen,
         sigdef.sigmaN,
         sigdef.deltaPhiRad,
@@ -605,16 +590,16 @@ object SETISim {
         seed,
         randGen,
         uuid
-      );
+      )
 
       // var dataOutputByteStream = new ByteArrayOutputStream(sigdef.outputLength);
-      var rawSimulatedDataByteStream = new ByteArrayOutputStream(
+      val rawSimulatedDataByteStream = new ByteArrayOutputStream(
         2 * sigdef.outputLength
-      );
+      )
 
       DS.run(rawSimulatedDataByteStream)
 
-      DS.updatePrivateHeader();
+      DS.updatePrivateHeader()
 
       //check to see how many times the simulated amplitude was beyond the
       //8-bit range
@@ -638,10 +623,10 @@ object SETISim {
 
       //only add the public header to output byte stream.
 
-      var mapper = new ObjectMapper();
-      var dataOutputByteStream = new ByteArrayOutputStream(
+      val mapper = new ObjectMapper()
+      val dataOutputByteStream = new ByteArrayOutputStream(
         rawSimulatedDataByteStream.size()
-      );
+      )
 
       if (dataClass == "test" || dataClass == "basictest") {
         //use the unlabeled public header -- this JUST provides a UUID for the data file
@@ -650,29 +635,29 @@ object SETISim {
         //ensure test data cannot be grouped together by UUID, since UIID encodes the time stamp.
         //For example, if 100 test simulations were created at the same time, thier UUIDs could be used
         //to reconstruct the time they were created and then allow somebody to group them together
-        var hashBytes = digest.digest(rawSimulatedDataByteStream.toByteArray());
+        val hashBytes = digest.digest(rawSimulatedDataByteStream.toByteArray)
         DS.uuid = HexBytesUtil.bytes2hex(hashBytes)
 
-        DS.privateHeader.put("uuid", DS.uuid);
-        DS.labeledPublicHeader.put("uuid", DS.uuid);
-        DS.unlabeledPublicHeader.put("uuid", DS.uuid);
+        DS.privateHeader.put("uuid", DS.uuid)
+        DS.labeledPublicHeader.put("uuid", DS.uuid)
+        DS.unlabeledPublicHeader.put("uuid", DS.uuid)
 
         dataOutputByteStream.write(
           mapper.writeValueAsBytes(DS.unlabeledPublicHeader)
-        );
+        )
       } else {
         dataOutputByteStream.write(
           mapper.writeValueAsBytes(DS.labeledPublicHeader)
-        );
+        )
       }
-      dataOutputByteStream.write('\n');
-      dataOutputByteStream.write(rawSimulatedDataByteStream.toByteArray());
+      dataOutputByteStream.write('\n')
+      dataOutputByteStream.write(rawSimulatedDataByteStream.toByteArray)
 
       //  output file name is based on uuid
-      var outputFileName = s"${DS.uuid}.dat"
+      val outputFileName = s"${DS.uuid}.dat"
       println("file: " + outputFileName + "\n")
       println("labeled public header: \n")
-      System.out.println(mapper.writeValueAsString(DS.labeledPublicHeader));
+      System.out.println(mapper.writeValueAsString(DS.labeledPublicHeader))
 
       try {
 
@@ -689,31 +674,31 @@ object SETISim {
           dashdb.noise_file_uuid("")
 
           dashdb.uuid(DS.uuid)
-          dashdb.sigN(DS.sigN);
-          dashdb.noiseName(noiseGen.getName());
-          dashdb.dPhi(DS.dPhi);
-          dashdb.SNR(DS.SNR);
-          dashdb.drift(DS.drift);
-          dashdb.driftRateDerivative(DS.driftRateDerivate);
-          dashdb.jitter(DS.jitter);
-          dashdb.len(DS.numberOfDataSamples);
-          dashdb.ampModType(DS.ampModType);
-          dashdb.ampModPeriod(DS.ampModPeriod);
-          dashdb.ampModDuty(DS.ampModDuty);
-          dashdb.ampPhase(DS.ampPhase);
-          dashdb.ampPhaseSquare(DS.ampPhaseSquare);
-          dashdb.ampPhaseSine(DS.ampPhaseSine);
-          dashdb.signalClass(DS.signalClass);
-          dashdb.seed(DS.seed);
-          dashdb.mDriftDivisor(DS.mDriftDivisor);
-          dashdb.sinDrift(DS.sinDrift);
-          dashdb.cosDrift(DS.cosDrift);
-          dashdb.simulationVersion(DS.simulationVersion);
-          dashdb.simulationVersionDate(DS.simulationVersionDate);
+          dashdb.sigN(DS.sigN)
+          dashdb.noiseName(noiseGen.getName)
+          dashdb.dPhi(DS.dPhi)
+          dashdb.SNR(DS.SNR)
+          dashdb.drift(DS.drift)
+          dashdb.driftRateDerivative(DS.driftRateDerivate)
+          dashdb.jitter(DS.jitter)
+          dashdb.len(DS.numberOfDataSamples)
+          dashdb.ampModType(DS.ampModType)
+          dashdb.ampModPeriod(DS.ampModPeriod)
+          dashdb.ampModDuty(DS.ampModDuty)
+          dashdb.ampPhase(DS.ampPhase)
+          dashdb.ampPhaseSquare(DS.ampPhaseSquare)
+          dashdb.ampPhaseSine(DS.ampPhaseSine)
+          dashdb.signalClass(DS.signalClass)
+          dashdb.seed(DS.seed)
+          dashdb.mDriftDivisor(DS.mDriftDivisor)
+          dashdb.sinDrift(DS.sinDrift)
+          dashdb.cosDrift(DS.cosDrift)
+          dashdb.simulationVersion(DS.simulationVersion)
+          dashdb.simulationVersionDate(DS.simulationVersionDate)
 
-          dashdb.time(new Timestamp(System.currentTimeMillis()));
-          dashdb.container(simulatedSignalContainer);
-          dashdb.outputFileName(outputFileName);
+          dashdb.time(new Timestamp(System.currentTimeMillis()))
+          dashdb.container(simulatedSignalContainer)
+          dashdb.outputFileName(outputFileName)
         }
 
         //first, insert data file to object store
@@ -724,13 +709,13 @@ object SETISim {
         //rollback dashdb transaction
 
         //upload output file
-        var dataBytes = dataOutputByteStream.toByteArray();
+        val dataBytes = dataOutputByteStream.toByteArray
         //calculate local md5
 
-        var hashBytes = digest.digest(dataBytes);
-        var localEtag = HexBytesUtil.bytes2hex(hashBytes)
+        val hashBytes = digest.digest(dataBytes)
+        val localEtag = HexBytesUtil.bytes2hex(hashBytes)
 
-        var etag: String = localEtag
+        val etag: String = localEtag
 
         if (!local) {
           var etag =
@@ -738,13 +723,13 @@ object SETISim {
         } else { //if we are local, create a file output stream and include the private header information
           val FOS: FileOutputStream = new FileOutputStream(
             new File(outputFileName)
-          );
+          )
           if (dataClass != "test" && dataClass != "basictest") {
-            FOS.write(mapper.writeValueAsBytes(DS.privateHeader));
-            FOS.write('\n');
+            FOS.write(mapper.writeValueAsBytes(DS.privateHeader))
+            FOS.write('\n')
           }
           FOS.write(dataBytes); //this includes the public header already
-          FOS.close();
+          FOS.close()
         }
 
         if (etag != localEtag) {
@@ -755,12 +740,12 @@ object SETISim {
 
         //update database
         if (!local) {
-          dashdb.etag(localEtag);
+          dashdb.etag(localEtag)
           dashdb.insertDataStatement.executeUpdate
         }
 
         //close noise generator
-        noiseGen.close();
+        noiseGen.close()
         //ship the file to object storage
         //if this fails, need to rollback as well!
 
@@ -768,55 +753,53 @@ object SETISim {
         // ... code to handle exceptions
         // if DB connection exception, don't push data file to Object Storage.
         //Need to print out info for logs.
-        case e: SQLException => {
+        case e: SQLException =>
           printException(e)
 
           try {
             println("SQLException: Transaction is being rolled back");
             objstore.delete(simulatedSignalContainer, outputFileName)
-            dashdb.connection.rollback;
+            dashdb.connection.rollback();
           } catch {
-            case ee: Throwable => ee.printStackTrace
+            case ee: Throwable => ee.printStackTrace()
           }
-        }
-        case e: Throwable => {
-          e.printStackTrace
+        case e: Throwable =>
+          e.printStackTrace()
 
           try {
             println("Other Throwable: Transaction is being rolled back");
             if (!local) {
-              dashdb.connection.rollback
+              dashdb.connection.rollback()
               objstore.delete(simulatedSignalContainer, outputFileName)
             }
           } catch {
-            case ee: Throwable => ee.printStackTrace
+            case ee: Throwable => ee.printStackTrace()
           }
-        }
       }
     }
 
     if (!local) {
-      dashdb.insertDataStatement.close
-      dashdb.connection.close
+      dashdb.insertDataStatement.close()
+      dashdb.connection.close()
     }
   }
 
   def printException(ex: SQLException) {
     if (ex != null) {
-      System.err.println("SQLState: " + ex.getSQLState());
-      System.err.println("Error Code: " + ex.getErrorCode());
-      System.err.println("Message: " + ex.getMessage());
-      var t: Throwable = ex.getCause();
+      System.err.println("SQLState: " + ex.getSQLState)
+      System.err.println("Error Code: " + ex.getErrorCode)
+      System.err.println("Message: " + ex.getMessage)
+      var t: Throwable = ex.getCause
       while (t != null) {
-        System.out.println("Cause: " + t);
-        t = t.getCause();
+        System.out.println("Cause: " + t)
+        t = t.getCause
       }
     }
   }
 
   def main(args: Array[String]) {
 
-    var dataClass = args(0)
+    val dataClass = args(0)
 
     //really, I should move all these args to 'val's for this object,
     //then won't have to pass them in to the functions directly.
@@ -824,26 +807,23 @@ object SETISim {
     val simType: String = args(1)
 
     simType match {
-      case "spark" => {
+      case "spark" =>
         val numPartitions: Int = args(2).toInt
         val nSims: Int = args(3).toInt
         val noiseName: String = args(5)
         sparkSim(numPartitions, nSims, args(4), noiseName, dataClass)
-      }
-      case "serial" => {
+      case "serial" =>
         val nSims: Int = args(2).toInt
         val noiseName: String = args(4)
-        serialSim(nSims, args(3), noiseName, false, dataClass, None)
-      }
-      case "local" => {
+        serialSim(nSims, args(3), noiseName, local = false, dataClass, None)
+      case "local" =>
         val nSims: Int = args(2).toInt
         val noiseName: String = args(4)
         var signalAmp: Option[Double] = None;
         if (args.length > 5) {
           signalAmp = Some(args(5).toDouble)
         }
-        serialSim(nSims, args(3), noiseName, true, dataClass, signalAmp)
-      }
+        serialSim(nSims, args(3), noiseName, local = true, dataClass, signalAmp)
     }
 
   }
