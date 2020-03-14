@@ -7,7 +7,7 @@ private class TestSignal(rand: Random, dataClass: String)
 
   signalClass = "test"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.3, 0.5)

@@ -8,7 +8,7 @@ private class SquiggleSinePulsedNarrowBandDRD(rand: Random, dataClass: String)
   signalClass = "squigglesinepulsednarrowbanddrd"
   ampModType = "sine"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.1, 0.5)

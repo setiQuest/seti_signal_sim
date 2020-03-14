@@ -7,7 +7,7 @@ private class Squiggle(rand: Random, dataClass: String)
 
   signalClass = "squiggle"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
 

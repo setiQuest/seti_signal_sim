@@ -9,7 +9,7 @@ private class BrightPixel(rand: Random, dataClass: String)
   ampModType = "brightpixel"
   ampModPeriod = 32 * 6144
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.05, 0.75)

@@ -8,7 +8,7 @@ private class SquiggleSquarePulsedNarrowBand(rand: Random, dataClass: String)
   signalClass = "squigglesquarepulsednarrowband"
   ampModType = "square"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.1, 0.5)

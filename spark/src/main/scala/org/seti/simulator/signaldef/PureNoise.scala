@@ -7,5 +7,5 @@ private class PureNoise(rand: Random, dataClass: String)
 
   signalClass = "noise"
 
-  def next {}
+  def next() {}
 }

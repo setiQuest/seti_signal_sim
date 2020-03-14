@@ -18,7 +18,7 @@ abstract class SignalDef(val rand: Random, val dataClass: String) {
   var ampModDuty: Double = 0.0
   var signalClass: String = _
 
-  next //call next in constructor!
+  next() //call next in constructor!
 
   //each subclass needs to define this
   def next()

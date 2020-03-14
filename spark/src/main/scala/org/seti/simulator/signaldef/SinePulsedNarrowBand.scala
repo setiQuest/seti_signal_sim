@@ -8,7 +8,7 @@ private class SinePulsedNarrowBand(rand: Random, dataClass: String)
   signalClass = "sinepulsednarrowband"
   ampModType = "sine"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.05, 0.5)

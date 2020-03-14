@@ -1,57 +1,24 @@
 package org.seti
 
-import org.apache.spark._
 import java.util.Random
 import java.io._
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.UUID
-
-import org.seti.simulate.GaussianNoise
-import org.seti.simulate.FileNoise
-import org.seti.simulate.NoiseGenerator
-import org.seti.simulate.DataSimulator
-import java.sql.PreparedStatement
 import java.sql.Timestamp
-import java.util.Date
 import java.sql.SQLException
 import java.security.MessageDigest
 import java.util.Properties
-import java.sql.ResultSet
-
-import org.seti.simulator.SunNoise
-
-// import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
-// import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
-// import com.fasterxml.jackson.module.scala.DefaultScalaModule
-
-import scala.collection.JavaConverters._
 
 import com.fasterxml.jackson.databind.ObjectMapper
-
-import org.seti.simulator.errors.MisMatchDigest
-import org.seti.simulator.errors.MissingSunNoise
+import org.apache.spark._
+import org.apache.hadoop.conf.Configuration
+import org.seti.simulate._
+import org.seti.simulator.errors._
+import org.seti.simulator.SunNoise
 import org.seti.simulator.utils.HexBytesUtil
 import org.seti.simulator.objectstorage.OpenStack4jObjectStore
 import org.seti.simulator.objectstorage.SwiftObjStore
 import org.seti.simulator.database.DashDB
 import org.seti.simulator.signaldef.SignalDefFactory
-import org.seti.simulator.signaldef.SignalDef
-//import org.seti.simulator.SunNoise
-
-import com.ibm.ibmos2spark.bluemix
-
-import org.apache.hadoop.fs.FSDataInputStream
-import org.apache.hadoop.fs.FSDataOutputStream
-import org.apache.hadoop.fs.FileStatus
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
-
-import java.io.EOFException
-import java.io.IOException
-import java.net.URI
-
-import org.apache.hadoop.conf.Configuration
 
 object SETISim {
 
@@ -422,9 +389,9 @@ object SETISim {
                 message += s"${e.getMessage}\n"
                 status = "failed"
                 try {
-                  println("Transaction is being rolled back");
-                  dashDBConnection.connection.rollback();
-                  objstore.delete(simulatedSignalContainer, outputFileName);
+                  println("Transaction is being rolled back")
+                  dashDBConnection.connection.rollback()
+                  objstore.delete(simulatedSignalContainer, outputFileName)
                 } catch {
                   case ee: Throwable =>
                     ee.printStackTrace()
@@ -437,9 +404,9 @@ object SETISim {
                 message += s"General Exception\n"
                 message += s"${e.getMessage}\n"
                 try {
-                  println("Transaction is being rolled back");
+                  println("Transaction is being rolled back")
                   dashDBConnection.connection.rollback()
-                  objstore.delete(simulatedSignalContainer, outputFileName);
+                  objstore.delete(simulatedSignalContainer, outputFileName)
                 } catch {
                   case ee: Throwable =>
                     ee.printStackTrace()
@@ -757,9 +724,9 @@ object SETISim {
           printException(e)
 
           try {
-            println("SQLException: Transaction is being rolled back");
+            println("SQLException: Transaction is being rolled back")
             objstore.delete(simulatedSignalContainer, outputFileName)
-            dashdb.connection.rollback();
+            dashdb.connection.rollback()
           } catch {
             case ee: Throwable => ee.printStackTrace()
           }
@@ -767,7 +734,7 @@ object SETISim {
           e.printStackTrace()
 
           try {
-            println("Other Throwable: Transaction is being rolled back");
+            println("Other Throwable: Transaction is being rolled back")
             if (!local) {
               dashdb.connection.rollback()
               objstore.delete(simulatedSignalContainer, outputFileName)
@@ -819,7 +786,7 @@ object SETISim {
       case "local" =>
         val nSims: Int = args(2).toInt
         val noiseName: String = args(4)
-        var signalAmp: Option[Double] = None;
+        var signalAmp: Option[Double] = None
         if (args.length > 5) {
           signalAmp = Some(args(5).toDouble)
         }

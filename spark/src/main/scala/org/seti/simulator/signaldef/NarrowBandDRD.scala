@@ -7,7 +7,7 @@ private class NarrowBandDRD(rand: Random, dataClass: String)
 
   signalClass = "narrowbanddrd"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
 

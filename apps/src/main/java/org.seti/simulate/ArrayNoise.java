@@ -16,6 +16,5 @@ public class ArrayNoise extends NoiseGenerator {
 
     @Override
     public void close() {
-        return;
     }
 }

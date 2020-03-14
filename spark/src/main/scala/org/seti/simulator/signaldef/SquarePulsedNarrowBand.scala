@@ -8,7 +8,7 @@ private class SquarePulsedNarrowBand(rand: Random, dataClass: String)
   signalClass = "squarepulsednarrowband"
   ampModType = "square"
 
-  def next {
+  def next() {
 
     deltaPhiRad = nextDoubleFromRange(-120.0, 120.0)
     SNR = nextDoubleFromRange(0.05, 0.4)
