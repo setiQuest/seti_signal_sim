@@ -1,18 +1,17 @@
 package org.seti.simulate;
+
 import java.util.Random;
 
-public class GaussianNoise extends NoiseGenerator
-{
-  private Random rand = null;
+public class GaussianNoise extends NoiseGenerator {
+    private Random rand = null;
 
-  public GaussianNoise(Random aRand) {
-    this.setName("gaussian");
-    rand = aRand;
-  }
+    public GaussianNoise(Random aRand) {
+        this.setName("gaussian");
+        rand = aRand;
+    }
 
-  @Override
-  public double next() throws Exception
-  {
-    return rand.nextGaussian() * this.getAmp();
-  }
+    @Override
+    public double next() throws Exception {
+        return rand.nextGaussian() * this.getAmp();
+    }
 }
